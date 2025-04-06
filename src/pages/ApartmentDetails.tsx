@@ -1,10 +1,11 @@
 
-import React, { useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import React, { useState, useEffect, useRef } from 'react';
+import { useParams, Link } from 'react-router-dom';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import { mockApartments } from '@/utils/mockData';
 import { Button } from '@/components/ui/button';
+import { useToast } from '@/components/ui/use-toast';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ArrowLeft, Calendar, Check, Heart, MapPin, Share } from 'lucide-react';
@@ -12,234 +13,312 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { useToast } from '@/components/ui/use-toast';
+import gsap from 'gsap';
 
 const ApartmentDetails = () => {
   const { id } = useParams<{ id: string }>();
   const { toast } = useToast();
-  const [contactDialogOpen, setContactDialogOpen] = useState(false);
-  const [scheduleDialogOpen, setScheduleDialogOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isFavorite, setIsFavorite] = useState(false);
+  const [showContactDialog, setShowContactDialog] = useState(false);
+  const [showTourDialog, setShowTourDialog] = useState(false);
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
-  const [phone, setPhone] = useState('');
   const [message, setMessage] = useState('');
   const [tourDate, setTourDate] = useState('');
+  
+  const imageRef = useRef<HTMLDivElement>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
+  const headerRef = useRef<HTMLDivElement>(null);
 
   // Find apartment data using the id from URL
   const apartment = mockApartments.find(apt => apt.id === id) || mockApartments[0];
+
+  useEffect(() => {
+    // Simulate loading
+    const timer = setTimeout(() => {
+      setIsLoading(false);
+    }, 500);
+
+    // GSAP animations
+    if (!isLoading) {
+      // Header animation
+      gsap.fromTo(headerRef.current, 
+        { opacity: 0, y: -50 }, 
+        { opacity: 1, y: 0, duration: 0.8, ease: "power3.out" }
+      );
+      
+      // Image animation
+      gsap.fromTo(imageRef.current, 
+        { opacity: 0, scale: 0.9 }, 
+        { opacity: 1, scale: 1, duration: 0.8, delay: 0.2, ease: "back.out(1.7)" }
+      );
+      
+      // Content animation
+      gsap.fromTo(contentRef.current, 
+        { opacity: 0, y: 50 }, 
+        { opacity: 1, y: 0, duration: 0.8, delay: 0.4, ease: "power3.out" }
+      );
+    }
+
+    return () => clearTimeout(timer);
+  }, [isLoading]);
 
   const handleContactSubmit = () => {
     if (!name || !email || !message) {
       toast({
         title: "Missing Information",
         description: "Please fill out all required fields.",
-        variant: "destructive",
+        variant: "destructive"
       });
       return;
     }
     
     toast({
-      title: "Message Sent",
-      description: "We've received your inquiry and will get back to you soon.",
+      title: "Message Sent!",
+      description: "The broker will respond to you soon.",
     });
-    
-    setContactDialogOpen(false);
-    // Reset form
-    setName('');
-    setEmail('');
-    setPhone('');
-    setMessage('');
+    setShowContactDialog(false);
   };
 
-  const handleScheduleTour = () => {
+  const handleTourSubmit = () => {
     if (!name || !email || !tourDate) {
       toast({
         title: "Missing Information",
         description: "Please fill out all required fields.",
-        variant: "destructive",
+        variant: "destructive"
       });
       return;
     }
     
     toast({
-      title: "Tour Scheduled",
-      description: `Your tour has been scheduled for ${new Date(tourDate).toLocaleDateString()}.`,
+      title: "Tour Scheduled!",
+      description: `Your tour is scheduled for ${tourDate}.`,
     });
-    
-    setScheduleDialogOpen(false);
-    // Reset form
-    setName('');
-    setEmail('');
-    setPhone('');
-    setTourDate('');
+    setShowTourDialog(false);
   };
 
-  const formatBedrooms = (bedrooms: number) => {
-    return bedrooms === 0 ? 'Studio' : `${bedrooms} Bedroom${bedrooms > 1 ? 's' : ''}`;
+  const toggleFavorite = () => {
+    setIsFavorite(!isFavorite);
+    toast({
+      title: isFavorite ? "Removed from Favorites" : "Added to Favorites",
+      description: isFavorite 
+        ? "This property has been removed from your favorites." 
+        : "This property has been added to your favorites.",
+    });
   };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex flex-col">
+        <Navbar />
+        <main className="flex-grow flex items-center justify-center">
+          <div className="animate-pulse">
+            <p className="text-groww-purple text-lg">Loading apartment details...</p>
+          </div>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex flex-col">
       <Navbar />
-      <main className="flex-grow bg-gray-50 py-8">
+      <main className="flex-grow bg-gray-50 py-6">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="mb-6">
+          {/* Back navigation */}
+          <div ref={headerRef} className="mb-6">
             <Link 
               to="/results" 
-              className="inline-flex items-center text-groww-purple hover:text-groww-purple-dark mb-4"
+              className="inline-flex items-center text-groww-purple hover:text-groww-purple-dark transition-colors"
             >
-              <ArrowLeft size={16} className="mr-1" /> Back to Results
+              <ArrowLeft size={18} className="mr-2" /> Back to Results
             </Link>
-            
-            <div className="flex flex-col md:flex-row justify-between md:items-center">
+          </div>
+
+          {/* Header information */}
+          <div ref={headerRef} className="mb-8 flex flex-col md:flex-row justify-between md:items-center">
+            <div>
               <h1 className="text-3xl font-bold text-groww-dark">{apartment.name}</h1>
-              <div className="mt-2 md:mt-0 flex items-center space-x-3">
-                <Button variant="outline" className="flex items-center">
-                  <Heart size={16} className="mr-1" /> Save
-                </Button>
-                <Button variant="outline" className="flex items-center">
-                  <Share size={16} className="mr-1" /> Share
-                </Button>
+              <div className="flex flex-wrap items-center gap-2 mt-2 text-gray-600">
+                <MapPin size={16} className="text-groww-purple" />
+                <span>{apartment.address}</span>
               </div>
             </div>
-            
-            <div className="flex items-center mt-2 text-gray-500">
-              <MapPin size={16} className="mr-1" /> 
-              {apartment.neighborhood}, NYC
+            <div className="mt-4 md:mt-0 flex items-center gap-4">
+              <div className="text-right">
+                <p className="text-2xl font-bold text-groww-purple">${apartment.price}<span className="text-sm font-normal">/mo</span></p>
+                <div className="inline-flex items-center bg-groww-soft-purple text-groww-purple px-3 py-1 rounded-full text-sm font-medium mt-1">
+                  {apartment.matchScore}% Match
+                </div>
+              </div>
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div className="md:col-span-2">
-              {/* Main Image Gallery - In a real app, would be multiple images */}
-              <div className="w-full aspect-video bg-gray-200 rounded-lg mb-4"></div>
-              <div className="grid grid-cols-4 gap-2">
-                {[1, 2, 3, 4].map((i) => (
-                  <div 
-                    key={i} 
-                    className="aspect-square bg-gray-300 rounded cursor-pointer hover:opacity-90 transition-opacity"
-                  ></div>
-                ))}
+          {/* Main content */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            {/* Left column: Images and details */}
+            <div className="lg:col-span-2 space-y-6">
+              {/* Image gallery */}
+              <div ref={imageRef} className="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+                <div className="bg-gray-200 h-[400px] rounded-lg flex items-center justify-center relative">
+                  <div className="text-gray-500">Apartment Images</div>
+                  <div className="absolute top-4 right-4 flex space-x-2">
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="bg-white hover:bg-white/90 rounded-full h-10 w-10 p-0"
+                      onClick={() => toggleFavorite()}
+                    >
+                      <Heart size={18} className={isFavorite ? "fill-red-500 text-red-500" : ""} />
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="bg-white hover:bg-white/90 rounded-full h-10 w-10 p-0"
+                      onClick={() => {
+                        toast({
+                          title: "Share Link Copied",
+                          description: "The link to this apartment was copied to your clipboard.",
+                        });
+                      }}
+                    >
+                      <Share size={18} />
+                    </Button>
+                  </div>
+                </div>
+                <div className="flex mt-4 space-x-2 overflow-x-auto pb-2">
+                  {[...Array(4)].map((_, i) => (
+                    <div key={i} className="bg-gray-200 h-16 w-24 flex-shrink-0 rounded-md"></div>
+                  ))}
+                </div>
               </div>
 
-              <Tabs defaultValue="details" className="mt-8">
-                <TabsList>
-                  <TabsTrigger value="details">Details</TabsTrigger>
-                  <TabsTrigger value="amenities">Amenities</TabsTrigger>
-                  <TabsTrigger value="location">Location</TabsTrigger>
-                </TabsList>
-                <TabsContent value="details" className="pt-4">
-                  <Card>
-                    <CardContent className="p-4">
-                      <h3 className="font-semibold text-lg mb-4">Apartment Details</h3>
-                      <div className="grid grid-cols-2 md:grid-cols-3 gap-y-4">
-                        <div>
-                          <p className="text-gray-500">Apartment Type</p>
-                          <p className="font-medium">{formatBedrooms(apartment.bedrooms)}</p>
-                        </div>
-                        <div>
-                          <p className="text-gray-500">Bathrooms</p>
-                          <p className="font-medium">{apartment.bathrooms}</p>
-                        </div>
-                        <div>
-                          <p className="text-gray-500">Square Footage</p>
-                          <p className="font-medium">{apartment.sqft} sqft</p>
-                        </div>
-                        <div>
-                          <p className="text-gray-500">Price</p>
-                          <p className="font-medium text-groww-purple">${apartment.price}/month</p>
-                        </div>
-                        <div>
-                          <p className="text-gray-500">Available From</p>
-                          <p className="font-medium">{new Date(apartment.available).toLocaleDateString()}</p>
-                        </div>
-                        <div>
-                          <p className="text-gray-500">Lease Term</p>
-                          <p className="font-medium">12 Months</p>
-                        </div>
+              {/* Tabs for details, amenities, etc */}
+              <div ref={contentRef} className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                <Tabs defaultValue="details">
+                  <TabsList className="w-full border-b grid grid-cols-3">
+                    <TabsTrigger value="details" className="rounded-none data-[state=active]:border-b-2 data-[state=active]:border-groww-purple">Details</TabsTrigger>
+                    <TabsTrigger value="amenities" className="rounded-none data-[state=active]:border-b-2 data-[state=active]:border-groww-purple">Amenities</TabsTrigger>
+                    <TabsTrigger value="location" className="rounded-none data-[state=active]:border-b-2 data-[state=active]:border-groww-purple">Location</TabsTrigger>
+                  </TabsList>
+                  <TabsContent value="details" className="p-6">
+                    <div className="grid grid-cols-2 gap-6">
+                      <div>
+                        <h3 className="text-sm text-gray-500">Bedrooms</h3>
+                        <p className="text-lg font-medium">{apartment.bedrooms}</p>
                       </div>
-
-                      <h3 className="font-semibold text-lg mt-6 mb-3">Description</h3>
+                      <div>
+                        <h3 className="text-sm text-gray-500">Bathrooms</h3>
+                        <p className="text-lg font-medium">{apartment.bathrooms}</p>
+                      </div>
+                      <div>
+                        <h3 className="text-sm text-gray-500">Square Feet</h3>
+                        <p className="text-lg font-medium">{apartment.sqft}</p>
+                      </div>
+                      <div>
+                        <h3 className="text-sm text-gray-500">Available From</h3>
+                        <p className="text-lg font-medium">{new Date(apartment.available).toLocaleDateString()}</p>
+                      </div>
+                    </div>
+                    <div className="mt-6">
+                      <h3 className="text-sm text-gray-500 mb-2">Description</h3>
                       <p className="text-gray-700">
-                        Welcome to {apartment.name}, a beautiful {formatBedrooms(apartment.bedrooms).toLowerCase()} 
-                        apartment in the heart of {apartment.neighborhood}. This {apartment.sqft} square foot apartment
-                        features modern appliances, ample natural light, and a prime location close to public transportation,
-                        restaurants, and shopping.
+                        This stunning {apartment.bedrooms}-bedroom apartment in {apartment.neighborhood} offers modern living 
+                        with exceptional amenities. Featuring {apartment.bathrooms} beautiful bathrooms and {apartment.sqft} 
+                        square feet of thoughtfully designed space, this residence provides both comfort and style.
                       </p>
-                    </CardContent>
-                  </Card>
-                </TabsContent>
-                
-                <TabsContent value="amenities" className="pt-4">
-                  <Card>
-                    <CardContent className="p-4">
-                      <h3 className="font-semibold text-lg mb-4">Property Amenities</h3>
-                      <div className="grid grid-cols-2 md:grid-cols-3 gap-y-3">
-                        {apartment.amenities.map((amenity) => (
-                          <div key={amenity} className="flex items-center">
-                            <Check size={16} className="mr-2 text-groww-purple" />
-                            <span>{amenity}</span>
-                          </div>
-                        ))}
+                    </div>
+                  </TabsContent>
+                  <TabsContent value="amenities" className="p-6">
+                    <div className="grid grid-cols-2 gap-4">
+                      {apartment.amenities.map((amenity, index) => (
+                        <div key={index} className="flex items-center space-x-2">
+                          <Check size={16} className="text-groww-purple" />
+                          <span>{amenity}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </TabsContent>
+                  <TabsContent value="location" className="p-6">
+                    <div className="bg-gray-200 h-[300px] rounded-lg flex items-center justify-center">
+                      <p className="text-gray-500">Map view of {apartment.address}</p>
+                    </div>
+                    <div className="mt-4">
+                      <h3 className="text-sm font-medium mb-2">Nearby</h3>
+                      <div className="space-y-2">
+                        <p className="text-sm text-gray-600">• 5 minutes to public transportation</p>
+                        <p className="text-sm text-gray-600">• 10 minutes to grocery store</p>
+                        <p className="text-sm text-gray-600">• 15 minutes to downtown</p>
                       </div>
-                    </CardContent>
-                  </Card>
-                </TabsContent>
-                
-                <TabsContent value="location" className="pt-4">
-                  <Card>
-                    <CardContent className="p-4 min-h-[300px] flex items-center justify-center">
-                      <div className="text-center">
-                        <p className="text-gray-500">Map will be displayed here.</p>
-                        <p className="text-gray-500">{apartment.neighborhood}, NYC</p>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </TabsContent>
-              </Tabs>
+                    </div>
+                  </TabsContent>
+                </Tabs>
+              </div>
             </div>
 
-            <div>
-              <Card className="sticky top-24">
-                <CardContent className="p-4">
-                  <div className="mb-4">
-                    <div className="flex justify-between items-baseline">
-                      <span className="text-2xl font-bold text-groww-purple">${apartment.price}</span>
-                      <span className="text-gray-500">/month</span>
-                    </div>
-                    <div className="flex items-center mt-1">
-                      <Badge className="bg-green-100 text-green-800 hover:bg-green-200">
-                        {apartment.matchScore}% Match
-                      </Badge>
-                    </div>
-                  </div>
-                  
-                  <div className="space-y-3">
+            {/* Right column: Contact and schedule tour */}
+            <div className="space-y-6">
+              <Card>
+                <CardContent className="p-6 space-y-6">
+                  <div>
+                    <h3 className="text-lg font-semibold mb-4">Interested in this property?</h3>
                     <Button 
-                      onClick={() => setContactDialogOpen(true)}
-                      className="w-full bg-groww-purple hover:bg-groww-purple-dark"
+                      className="w-full bg-groww-purple hover:bg-groww-purple-dark mb-3"
+                      onClick={() => setShowContactDialog(true)}
                     >
                       Contact Broker
                     </Button>
-                    <Button
-                      variant="outline"
-                      onClick={() => setScheduleDialogOpen(true)}
-                      className="w-full"
+                    <Button 
+                      variant="outline" 
+                      className="w-full border-groww-purple text-groww-purple hover:bg-groww-soft-purple"
+                      onClick={() => setShowTourDialog(true)}
                     >
-                      <Calendar size={16} className="mr-2" />
-                      Schedule Tour
+                      <Calendar size={18} className="mr-2" /> Schedule Tour
                     </Button>
                   </div>
-
-                  <div className="border-t mt-4 pt-4">
-                    <h4 className="font-medium mb-2">Broker Details</h4>
-                    <div className="flex items-center">
-                      <div className="w-10 h-10 rounded-full bg-gray-200"></div>
-                      <div className="ml-3">
-                        <p className="font-medium">Jane Smith</p>
-                        <p className="text-sm text-gray-500">ABC Realty</p>
+                  
+                  <div>
+                    <h3 className="text-lg font-semibold mb-2">Match Highlights</h3>
+                    <div className="space-y-2">
+                      <div className="flex items-center space-x-2">
+                        <Check size={16} className="text-green-500" />
+                        <span className="text-sm">Within your budget range</span>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <Check size={16} className="text-green-500" />
+                        <span className="text-sm">Has your required bedrooms</span>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <Check size={16} className="text-green-500" />
+                        <span className="text-sm">In your preferred neighborhood</span>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <Check size={16} className="text-green-500" />
+                        <span className="text-sm">Available within your timeframe</span>
                       </div>
                     </div>
+                  </div>
+                </CardContent>
+              </Card>
+              
+              <Card>
+                <CardContent className="p-6">
+                  <h3 className="text-lg font-semibold mb-4">Similar Properties</h3>
+                  <div className="space-y-4">
+                    {mockApartments.slice(0, 2).filter(apt => apt.id !== apartment.id).map(apt => (
+                      <div key={apt.id} className="border rounded-lg p-3 hover:border-groww-purple transition-colors">
+                        <Link to={`/apartments/${apt.id}`} className="flex space-x-3">
+                          <div className="bg-gray-200 w-16 h-16 rounded"></div>
+                          <div>
+                            <h4 className="font-medium text-groww-dark line-clamp-1">{apt.name}</h4>
+                            <p className="text-sm text-gray-600">{apt.neighborhood}</p>
+                            <p className="text-sm font-medium text-groww-purple">${apt.price}/mo</p>
+                          </div>
+                        </Link>
+                      </div>
+                    ))}
                   </div>
                 </CardContent>
               </Card>
@@ -249,130 +328,64 @@ const ApartmentDetails = () => {
       </main>
       <Footer />
 
-      {/* Contact Dialog */}
-      <Dialog open={contactDialogOpen} onOpenChange={setContactDialogOpen}>
-        <DialogContent className="max-w-md">
+      {/* Contact dialog */}
+      <Dialog open={showContactDialog} onOpenChange={setShowContactDialog}>
+        <DialogContent>
           <DialogHeader>
-            <DialogTitle>Contact about {apartment.name}</DialogTitle>
+            <DialogTitle>Contact Broker</DialogTitle>
             <DialogDescription>
-              Fill out this form to contact the broker about this apartment.
+              Send a message to the listing broker about this property.
             </DialogDescription>
           </DialogHeader>
-          
-          <div className="space-y-4 py-2">
+          <div className="space-y-4">
             <div>
-              <label htmlFor="name" className="block text-sm font-medium mb-1">Name *</label>
-              <Input 
-                id="name" 
-                value={name} 
-                onChange={(e) => setName(e.target.value)} 
-                placeholder="Your name"
-              />
+              <label className="text-sm font-medium">Your Name</label>
+              <Input placeholder="Enter your name" value={name} onChange={(e) => setName(e.target.value)} />
             </div>
             <div>
-              <label htmlFor="email" className="block text-sm font-medium mb-1">Email *</label>
-              <Input 
-                id="email" 
-                type="email" 
-                value={email} 
-                onChange={(e) => setEmail(e.target.value)} 
-                placeholder="Your email"
-              />
+              <label className="text-sm font-medium">Your Email</label>
+              <Input placeholder="Enter your email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
             </div>
             <div>
-              <label htmlFor="phone" className="block text-sm font-medium mb-1">Phone</label>
-              <Input 
-                id="phone" 
-                value={phone} 
-                onChange={(e) => setPhone(e.target.value)} 
-                placeholder="Your phone number (optional)"
-              />
-            </div>
-            <div>
-              <label htmlFor="message" className="block text-sm font-medium mb-1">Message *</label>
-              <Textarea 
-                id="message" 
-                value={message} 
-                onChange={(e) => setMessage(e.target.value)} 
-                placeholder="I'm interested in this apartment..."
-                rows={4}
-              />
+              <label className="text-sm font-medium">Message</label>
+              <Textarea placeholder="I'm interested in this property..." value={message} onChange={(e) => setMessage(e.target.value)} />
             </div>
           </div>
-          
           <DialogFooter>
-            <Button variant="outline" onClick={() => setContactDialogOpen(false)}>
-              Cancel
-            </Button>
-            <Button 
-              onClick={handleContactSubmit}
-              className="bg-groww-purple hover:bg-groww-purple-dark"
-            >
+            <Button variant="outline" onClick={() => setShowContactDialog(false)}>Cancel</Button>
+            <Button onClick={handleContactSubmit} className="bg-groww-purple hover:bg-groww-purple-dark">
               Send Message
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* Schedule Tour Dialog */}
-      <Dialog open={scheduleDialogOpen} onOpenChange={setScheduleDialogOpen}>
-        <DialogContent className="max-w-md">
+      {/* Schedule Tour dialog */}
+      <Dialog open={showTourDialog} onOpenChange={setShowTourDialog}>
+        <DialogContent>
           <DialogHeader>
             <DialogTitle>Schedule a Tour</DialogTitle>
             <DialogDescription>
-              Pick a date to tour {apartment.name} in person.
+              Select a date and time to visit this property.
             </DialogDescription>
           </DialogHeader>
-          
-          <div className="space-y-4 py-2">
+          <div className="space-y-4">
             <div>
-              <label htmlFor="tour-name" className="block text-sm font-medium mb-1">Name *</label>
-              <Input 
-                id="tour-name" 
-                value={name} 
-                onChange={(e) => setName(e.target.value)} 
-                placeholder="Your name"
-              />
+              <label className="text-sm font-medium">Your Name</label>
+              <Input placeholder="Enter your name" value={name} onChange={(e) => setName(e.target.value)} />
             </div>
             <div>
-              <label htmlFor="tour-email" className="block text-sm font-medium mb-1">Email *</label>
-              <Input 
-                id="tour-email" 
-                type="email" 
-                value={email} 
-                onChange={(e) => setEmail(e.target.value)} 
-                placeholder="Your email"
-              />
+              <label className="text-sm font-medium">Your Email</label>
+              <Input placeholder="Enter your email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
             </div>
             <div>
-              <label htmlFor="tour-phone" className="block text-sm font-medium mb-1">Phone</label>
-              <Input 
-                id="tour-phone" 
-                value={phone} 
-                onChange={(e) => setPhone(e.target.value)} 
-                placeholder="Your phone number (optional)"
-              />
-            </div>
-            <div>
-              <label htmlFor="tour-date" className="block text-sm font-medium mb-1">Preferred Date *</label>
-              <Input 
-                id="tour-date" 
-                type="date" 
-                value={tourDate} 
-                onChange={(e) => setTourDate(e.target.value)}
-                min={new Date().toISOString().split('T')[0]}
-              />
+              <label className="text-sm font-medium">Preferred Date & Time</label>
+              <Input type="datetime-local" value={tourDate} onChange={(e) => setTourDate(e.target.value)} />
             </div>
           </div>
-          
           <DialogFooter>
-            <Button variant="outline" onClick={() => setScheduleDialogOpen(false)}>
-              Cancel
-            </Button>
-            <Button 
-              onClick={handleScheduleTour}
-              className="bg-groww-purple hover:bg-groww-purple-dark"
-            >
+            <Button variant="outline" onClick={() => setShowTourDialog(false)}>Cancel</Button>
+            <Button onClick={handleTourSubmit} className="bg-groww-purple hover:bg-groww-purple-dark">
               Schedule Tour
             </Button>
           </DialogFooter>
