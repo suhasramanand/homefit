@@ -13,7 +13,7 @@ import { useToast } from '@/components/ui/use-toast';
 const BrokerListings = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [selectedListingId, setSelectedListingId] = useState<number | null>(null);
+  const [selectedListingId, setSelectedListingId] = useState<string | null>(null);
   const { toast } = useToast();
   
   const apartments = mockApartments.slice(0, 6); // Use mock data for now
@@ -23,7 +23,7 @@ const BrokerListings = () => {
     apt.neighborhood.toLowerCase().includes(searchTerm.toLowerCase())
   );
   
-  const handleDeleteClick = (id: number) => {
+  const handleDeleteClick = (id: string) => {
     setSelectedListingId(id);
     setDeleteDialogOpen(true);
   };

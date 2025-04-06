@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ArrowLeft, Calendar, Check, Heart, MapPin, Share } from 'lucide-react';
-import { Tabs, TabsContent, TabsIndicator, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -26,7 +26,7 @@ const ApartmentDetails = () => {
   const [tourDate, setTourDate] = useState('');
 
   // Find apartment data using the id from URL
-  const apartment = mockApartments.find(apt => apt.id === Number(id)) || mockApartments[0];
+  const apartment = mockApartments.find(apt => apt.id === id) || mockApartments[0];
 
   const handleContactSubmit = () => {
     if (!name || !email || !message) {

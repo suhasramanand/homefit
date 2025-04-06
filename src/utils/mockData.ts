@@ -102,3 +102,6 @@ export const generateMockApartments = (): Apartment[] => {
     },
   ];
 };
+
+// Export the mock apartments as a constant for direct import
+export const mockApartments = generateMockApartments();
