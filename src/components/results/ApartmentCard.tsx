@@ -3,6 +3,7 @@ import React from 'react';
 import { Apartment } from '@/utils/mockData';
 import { Card, CardContent, CardFooter } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Link } from 'react-router-dom';
 
 interface ApartmentCardProps {
   apartment: Apartment;
@@ -47,9 +48,9 @@ const ApartmentCard: React.FC<ApartmentCardProps> = ({ apartment }) => {
       </CardContent>
       <CardFooter className="bg-gray-50 px-4 py-3 flex justify-between items-center">
         <span className="text-sm text-gray-500">Available {new Date(apartment.available).toLocaleDateString()}</span>
-        <button className="text-sm font-medium text-groww-purple hover:text-groww-purple-dark transition-colors">
+        <Link to={`/apartments/${apartment.id}`} className="text-sm font-medium text-groww-purple hover:text-groww-purple-dark transition-colors">
           View Details
-        </button>
+        </Link>
       </CardFooter>
     </Card>
   );

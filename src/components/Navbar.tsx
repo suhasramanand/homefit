@@ -19,9 +19,37 @@ const Navbar = () => {
           <Link to="/questionnaire" className="font-medium text-gray-700 hover:text-groww-purple transition-colors">
             Find Your Match
           </Link>
-          <Link to="/about" className="font-medium text-gray-700 hover:text-groww-purple transition-colors">
-            How It Works
+          <Link to="/results" className="font-medium text-gray-700 hover:text-groww-purple transition-colors">
+            Apartments
           </Link>
+          <div className="relative group">
+            <button className="font-medium text-gray-700 hover:text-groww-purple transition-colors flex items-center">
+              Login
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="ml-1">
+                <path d="m6 9 6 6 6-6"/>
+              </svg>
+            </button>
+            <div className="absolute right-0 top-full mt-2 w-48 bg-white rounded-md shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 z-50">
+              <Link 
+                to="/login"
+                className="block px-4 py-2 text-sm text-gray-700 hover:bg-groww-soft-purple rounded-t-md"
+              >
+                User Login
+              </Link>
+              <Link 
+                to="/login" 
+                className="block px-4 py-2 text-sm text-gray-700 hover:bg-groww-soft-purple"
+              >
+                Broker Login
+              </Link>
+              <Link 
+                to="/login" 
+                className="block px-4 py-2 text-sm text-gray-700 hover:bg-groww-soft-purple rounded-b-md"
+              >
+                Admin Login
+              </Link>
+            </div>
+          </div>
         </div>
         
         <div className="flex items-center space-x-4">
