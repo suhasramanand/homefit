@@ -1,37 +1,30 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/components/ui/use-toast';
 import { animations } from '@/utils/animations';
 import gsap from 'gsap';
 
-const Login = () => {
+const Register = () => {
+  const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
-  const [role, setRole] = useState('user');
   
-  const { login, isAuthenticated } = useAuth();
+  const { register, isAuthenticated } = useAuth();
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
   const { toast } = useToast();
   const formRef = useRef<HTMLDivElement>(null);
   
-  // Get role from URL if provided
   useEffect(() => {
-    const roleParam = searchParams.get('role');
-    if (roleParam && ['user', 'broker', 'admin'].includes(roleParam)) {
-      setRole(roleParam);
-    }
-    
     // Redirect if already authenticated
     if (isAuthenticated) {
       navigate('/');
@@ -54,40 +47,35 @@ const Login = () => {
         ease: 'elastic.out(1, 0.5)' 
       }
     );
-  }, [isAuthenticated, navigate, searchParams]);
+  }, [isAuthenticated, navigate]);
   
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     
-    if (!email || !password) {
-      setError('Email and password are required');
+    // Validate inputs
+    if (!name || !email || !password || !confirmPassword) {
+      setError('All fields are required');
+      return;
+    }
+    
+    if (password !== confirmPassword) {
+      setError('Passwords do not match');
       return;
     }
     
     setIsSubmitting(true);
     
     try {
-      const success = await login(email, password);
+      const success = await register({ name, email, password });
       if (success) {
         toast({
-          title: "Login successful!",
-          description: "You have been logged in.",
+          title: "Registration successful!",
+          description: "Your account has been created.",
         });
-        
-        // Redirect based on role
-        switch (role) {
-          case 'broker':
-            navigate('/broker');
-            break;
-          case 'admin':
-            navigate('/admin');
-            break;
-          default:
-            navigate('/');
-        }
+        navigate('/questionnaire');
       } else {
-        setError('Invalid email or password');
+        setError('Registration failed. Please try again.');
       }
     } catch (error) {
       setError('An unexpected error occurred');
@@ -111,26 +99,32 @@ const Login = () => {
         <div ref={formRef} className="w-full max-w-md">
           <Card className="shadow-lg">
             <CardHeader className="space-y-2">
-              <CardTitle className="text-2xl font-bold text-center">Welcome Back</CardTitle>
+              <CardTitle className="text-2xl font-bold text-center">Create an Account</CardTitle>
               <CardDescription className="text-center">
-                Log in to your AptMatchBuddy account
+                Join AptMatchBuddy and find your perfect apartment match
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <Tabs defaultValue={role} onValueChange={setRole} className="mb-6">
-                <TabsList className="grid grid-cols-3">
-                  <TabsTrigger value="user">User</TabsTrigger>
-                  <TabsTrigger value="broker">Broker</TabsTrigger>
-                  <TabsTrigger value="admin">Admin</TabsTrigger>
-                </TabsList>
-              </Tabs>
-              
               <form onSubmit={handleSubmit} className="space-y-4">
                 {error && (
                   <div className="bg-red-50 text-red-600 p-3 rounded-md text-sm">
                     {error}
                   </div>
                 )}
+                
+                <div className="space-y-2">
+                  <label htmlFor="name" className="text-sm font-medium">
+                    Full Name
+                  </label>
+                  <Input
+                    id="name"
+                    type="text"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    placeholder="John Doe"
+                    required
+                  />
+                </div>
                 
                 <div className="space-y-2">
                   <label htmlFor="email" className="text-sm font-medium">
@@ -147,14 +141,9 @@ const Login = () => {
                 </div>
                 
                 <div className="space-y-2">
-                  <div className="flex justify-between items-center">
-                    <label htmlFor="password" className="text-sm font-medium">
-                      Password
-                    </label>
-                    <a href="#" className="text-xs text-groww-purple hover:underline">
-                      Forgot password?
-                    </a>
-                  </div>
+                  <label htmlFor="password" className="text-sm font-medium">
+                    Password
+                  </label>
                   <Input
                     id="password"
                     type="password"
@@ -165,20 +154,34 @@ const Login = () => {
                   />
                 </div>
                 
+                <div className="space-y-2">
+                  <label htmlFor="confirmPassword" className="text-sm font-medium">
+                    Confirm Password
+                  </label>
+                  <Input
+                    id="confirmPassword"
+                    type="password"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    placeholder="••••••••"
+                    required
+                  />
+                </div>
+                
                 <Button 
                   type="submit" 
                   className="w-full bg-groww-purple hover:bg-groww-purple-dark"
                   disabled={isSubmitting}
                 >
-                  {isSubmitting ? 'Logging in...' : 'Login'}
+                  {isSubmitting ? 'Creating Account...' : 'Create Account'}
                 </Button>
               </form>
             </CardContent>
             <CardFooter className="flex justify-center">
               <p className="text-sm text-gray-600">
-                Don't have an account?{' '}
-                <Link to="/register" className="text-groww-purple hover:underline">
-                  Create one
+                Already have an account?{' '}
+                <Link to="/login" className="text-groww-purple hover:underline">
+                  Log in
                 </Link>
               </p>
             </CardFooter>
@@ -191,4 +194,4 @@ const Login = () => {
   );
 };
 
-export default Login;
+export default Register;
