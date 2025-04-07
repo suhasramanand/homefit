@@ -1,5 +1,6 @@
-
 import { api } from './api';
+import { store } from '../store/store';
+import { getMatchExplanation } from '../store/slices/explanationsSlice';
 
 interface Apartment {
   id: string;
@@ -108,35 +109,63 @@ export const calculateMatchScore = (apartment: Apartment, preferences: UserPrefe
   return maxScore > 0 ? Math.round((score / maxScore) * 100) : 0;
 };
 
-// Get match explanation using Groq API
+// Generate a unique cache key for an apartment and preferences combination
+const generateCacheKey = (apartment: Apartment, preferences: UserPreferences): string => {
+  // Create a deterministic cache key based on apartment ID and preference values
+  const prefsKey = JSON.stringify({
+    budgetMin: preferences.budget?.min,
+    budgetMax: preferences.budget?.max,
+    locations: preferences.location?.join(','),
+    bedrooms: preferences.bedrooms,
+    bathrooms: preferences.bathrooms,
+    amenities: preferences.amenities?.join(',')
+  });
+  
+  // Create a hash of the preferences
+  let prefsHash = 0;
+  for (let i = 0; i < prefsKey.length; i++) {
+    prefsHash = ((prefsHash << 5) - prefsHash) + prefsKey.charCodeAt(i);
+    prefsHash = prefsHash & prefsHash; // Convert to 32bit integer
+  }
+  
+  return `${apartment.id}_${prefsHash}`;
+};
+
+// Get match explanation using Groq API with Redis caching and rate limiting
 export const getMatchExplanation = async (apartment: Apartment, preferences: UserPreferences, matchScore: number): Promise<string> => {
   try {
-    // Use Groq API to generate an explanation
-    const prompt = `
-      I need an explanation for why this apartment is a ${matchScore}% match for a user.
-      
-      Apartment details:
-      - Title: ${apartment.title}
-      - Price: $${apartment.price}
-      - Location: ${apartment.location.address}, ${apartment.location.city}, ${apartment.location.state}
-      - Bedrooms: ${apartment.features.bedrooms}
-      - Bathrooms: ${apartment.features.bathrooms}
-      - Square Feet: ${apartment.features.squareFeet}
-      - Amenities: ${apartment.amenities.join(', ')}
-      - Description: ${apartment.description}
-      
-      User preferences:
-      - Budget: $${preferences.budget?.min || 0} - $${preferences.budget?.max || 0}
-      - Preferred Locations: ${preferences.location?.join(', ') || 'Any'}
-      - Bedrooms: ${preferences.bedrooms || 'Any'}
-      - Bathrooms: ${preferences.bathrooms || 'Any'}
-      - Desired Amenities: ${preferences.amenities?.join(', ') || 'None specified'}
-      
-      In 3-4 sentences, explain why this is a ${matchScore}% match. Highlight the strongest matching points and mention any mismatches.
-    `;
+    const cacheKey = generateCacheKey(apartment, preferences);
     
-    const explanation = await api.groq.getExplanation(prompt);
-    return explanation || generateFallbackExplanation(apartment, preferences, matchScore);
+    // Check if we already have this explanation in the Redux store
+    const explanations = store.getState().explanations.explanations;
+    if (explanations[cacheKey]) {
+      return explanations[cacheKey];
+    }
+    
+    // Check rate limit info before making request
+    const { remaining, resetTime } = store.getState().explanations.rateLimit;
+    
+    if (remaining <= 0 && resetTime && resetTime > Date.now()) {
+      const minutes = Math.ceil((resetTime - Date.now()) / (1000 * 60));
+      return `Rate limit reached. Please try again in approximately ${minutes} minute${minutes !== 1 ? 's' : ''}.`;
+    }
+    
+    // Dispatch the async thunk to get the explanation
+    const resultAction = await store.dispatch(
+      getMatchExplanation({
+        apartment,
+        preferences,
+        matchScore,
+        cacheKey
+      })
+    );
+    
+    if (getMatchExplanation.fulfilled.match(resultAction)) {
+      return resultAction.payload.explanation;
+    } else {
+      // If we hit an error, return a fallback explanation
+      return generateFallbackExplanation(apartment, preferences, matchScore);
+    }
   } catch (error) {
     console.error('Error getting match explanation:', error);
     return generateFallbackExplanation(apartment, preferences, matchScore);
