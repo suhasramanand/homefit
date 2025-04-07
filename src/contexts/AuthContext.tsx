@@ -36,15 +36,22 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   
   // Check if user is already logged in on initial load
   useEffect(() => {
-    const storedUser = api.auth.getCurrentUser();
-    if (storedUser) {
-      setUser(storedUser);
-    }
-    setIsLoading(false);
+    const checkAuthentication = async () => {
+      try {
+        const currentUser = await api.auth.checkAuth();
+        setUser(currentUser);
+      } catch (error) {
+        console.error("Authentication check failed:", error);
+      } finally {
+        setIsLoading(false);
+        
+        // Add entrance animation for the app when auth is loaded
+        const body = document.body;
+        animations.fadeIn(body, 0.2, 0.5);
+      }
+    };
     
-    // Add entrance animation for the app when auth is loaded
-    const body = document.body;
-    animations.fadeIn(body, 0.2, 0.5);
+    checkAuthentication();
   }, []);
   
   const login = async (email: string, password: string): Promise<boolean> => {
@@ -113,8 +120,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
   
-  const logout = () => {
-    api.auth.logout();
+  const logout = async () => {
+    await api.auth.logout();
     setUser(null);
     toast({
       title: "Logged out",

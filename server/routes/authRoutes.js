@@ -1,6 +1,5 @@
 
 const express = require('express');
-const jwt = require('jsonwebtoken');
 const multer = require('multer');
 const path = require('path');
 const User = require('../models/User');
@@ -53,16 +52,15 @@ router.post('/register', upload.none(), async (req, res) => {
     
     await user.save();
     
-    // Generate token
-    const token = jwt.sign(
-      { id: user._id, email: user.email, role: user.role },
-      process.env.JWT_SECRET,
-      { expiresIn: '24h' }
-    );
+    // Create user session
+    req.session.user = {
+      id: user._id,
+      email: user.email,
+      role: user.role
+    };
     
     res.status(201).json({
       message: 'User registered successfully',
-      token,
       user: {
         id: user._id,
         name: user.name,
@@ -114,16 +112,18 @@ router.post('/register/broker', upload.single('licenseDocument'), async (req, re
     
     await user.save();
     
-    // Generate token
-    const token = jwt.sign(
-      { id: user._id, email: user.email, role: user.role },
-      process.env.JWT_SECRET,
-      { expiresIn: '24h' }
-    );
+    // Create user session
+    req.session.user = {
+      id: user._id,
+      email: user.email,
+      role: user.role,
+      brokerVerification: {
+        status: user.brokerVerification.status
+      }
+    };
     
     res.status(201).json({
       message: 'Broker registered successfully. Pending admin approval.',
-      token,
       user: {
         id: user._id,
         name: user.name,
@@ -168,16 +168,15 @@ router.post('/login', async (req, res) => {
     user.lastActive = Date.now();
     await user.save();
     
-    // Generate token
-    const token = jwt.sign(
-      { id: user._id, email: user.email, role: user.role },
-      process.env.JWT_SECRET,
-      { expiresIn: '24h' }
-    );
+    // Create user session
+    req.session.user = {
+      id: user._id,
+      email: user.email,
+      role: user.role
+    };
     
     res.json({
       message: 'Login successful',
-      token,
       user: {
         id: user._id,
         name: user.name,
@@ -192,6 +191,34 @@ router.post('/login', async (req, res) => {
   } catch (error) {
     res.status(500).json({ message: 'Server error', error: error.message });
   }
+});
+
+// Logout
+router.post('/logout', (req, res) => {
+  try {
+    req.session.destroy(err => {
+      if (err) {
+        return res.status(500).json({ message: 'Could not log out' });
+      }
+      res.clearCookie('connect.sid');
+      res.json({ message: 'Logout successful' });
+    });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+});
+
+// Check if user is authenticated
+router.get('/check', (req, res) => {
+  if (req.session && req.session.user) {
+    return res.json({
+      isAuthenticated: true,
+      user: req.session.user
+    });
+  }
+  res.json({
+    isAuthenticated: false
+  });
 });
 
 module.exports = router;

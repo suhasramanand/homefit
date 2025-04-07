@@ -1,16 +1,12 @@
-
 import { toast } from "@/components/ui/use-toast";
 import { groqApi } from "./groqApi";
 
 const API_URL = 'http://localhost:5000/api';
 
-// Helper to get the stored token
-const getToken = () => localStorage.getItem('aptmatchbuddy_token');
-
-// Create request header with auth token
+// Create request header
 const headers = () => ({
   'Content-Type': 'application/json',
-  'Authorization': `Bearer ${getToken()}`
+  credentials: 'include'
 });
 
 // Handle response and errors
@@ -43,14 +39,14 @@ export const api = {
       try {
         const response = await fetch(`${API_URL}/auth/login`, {
           method: 'POST',
+          credentials: 'include',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ email, password }),
         });
         const data = await handleResponse(response);
         
-        // Store token in localStorage
-        if (data.token) {
-          localStorage.setItem('aptmatchbuddy_token', data.token);
+        // Store user in localStorage for UI purposes
+        if (data.user) {
           localStorage.setItem('aptmatchbuddy_user', JSON.stringify(data.user));
         }
         
@@ -71,11 +67,13 @@ export const api = {
           if (role === 'broker') {
             response = await fetch(`${API_URL}/auth/register/broker`, {
               method: 'POST',
+              credentials: 'include',
               body: userData,
             });
           } else {
             response = await fetch(`${API_URL}/auth/register`, {
               method: 'POST',
+              credentials: 'include',
               body: userData,
             });
           }
@@ -83,6 +81,7 @@ export const api = {
           // Regular registration
           response = await fetch(`${API_URL}/auth/register`, {
             method: 'POST',
+            credentials: 'include',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(userData),
           });
@@ -90,9 +89,8 @@ export const api = {
         
         const data = await handleResponse(response);
         
-        // Store token in localStorage
-        if (data.token) {
-          localStorage.setItem('aptmatchbuddy_token', data.token);
+        // Store user in localStorage for UI purposes
+        if (data.user) {
           localStorage.setItem('aptmatchbuddy_user', JSON.stringify(data.user));
         }
         
@@ -102,9 +100,16 @@ export const api = {
       }
     },
     
-    logout: () => {
-      localStorage.removeItem('aptmatchbuddy_token');
-      localStorage.removeItem('aptmatchbuddy_user');
+    logout: async () => {
+      try {
+        await fetch(`${API_URL}/auth/logout`, {
+          method: 'POST',
+          credentials: 'include'
+        });
+        localStorage.removeItem('aptmatchbuddy_user');
+      } catch (error: any) {
+        handleError(error);
+      }
     },
     
     getCurrentUser: () => {
@@ -112,8 +117,28 @@ export const api = {
       return user ? JSON.parse(user) : null;
     },
     
+    checkAuth: async () => {
+      try {
+        const response = await fetch(`${API_URL}/auth/check`, {
+          credentials: 'include'
+        });
+        const data = await handleResponse(response);
+        
+        if (data.isAuthenticated && data.user) {
+          localStorage.setItem('aptmatchbuddy_user', JSON.stringify(data.user));
+          return data.user;
+        }
+        
+        localStorage.removeItem('aptmatchbuddy_user');
+        return null;
+      } catch (error: any) {
+        localStorage.removeItem('aptmatchbuddy_user');
+        return null;
+      }
+    },
+    
     isAuthenticated: () => {
-      return !!getToken();
+      return !!localStorage.getItem('aptmatchbuddy_user');
     },
     
     getRole: () => {
@@ -218,13 +243,14 @@ export const api = {
         if (profileData instanceof FormData) {
           response = await fetch(`${API_URL}/users/profile`, {
             method: 'PUT',
-            headers: { 'Authorization': `Bearer ${getToken()}` },
+            credentials: 'include',
             body: profileData,
           });
         } else {
           response = await fetch(`${API_URL}/users/profile`, {
             method: 'PUT',
-            headers: headers(),
+            credentials: 'include',
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(profileData),
           });
         }
@@ -416,5 +442,8 @@ export const api = {
     }
   }
 };
+
+// Helper to get the stored token
+const getToken = () => localStorage.getItem('aptmatchbuddy_token');
 
 export default api;
