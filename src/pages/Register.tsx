@@ -1,194 +1,204 @@
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import Navbar from '@/components/Navbar';
-import Footer from '@/components/Footer';
+import { useToast } from '@/components/ui/use-toast';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
-import { useToast } from '@/components/ui/use-toast';
-import { animations } from '@/utils/animations';
+import { Label } from '@/components/ui/label';
+import { 
+  Card, 
+  CardContent, 
+  CardDescription, 
+  CardFooter, 
+  CardHeader, 
+  CardTitle 
+} from '@/components/ui/card';
+import { 
+  Select, 
+  SelectContent, 
+  SelectItem, 
+  SelectTrigger, 
+  SelectValue 
+} from '@/components/ui/select';
+import { ArrowLeft } from 'lucide-react';
+import Navbar from '@/components/Navbar';
+import Footer from '@/components/Footer';
 import gsap from 'gsap';
 
 const Register = () => {
+  const { register } = useAuth();
+  const navigate = useNavigate();
+  const { toast } = useToast();
+  
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [error, setError] = useState('');
+  const [role, setRole] = useState('user');
+  const [isLoading, setIsLoading] = useState(false);
   
-  const { register, isAuthenticated } = useAuth();
-  const navigate = useNavigate();
-  const { toast } = useToast();
-  const formRef = useRef<HTMLDivElement>(null);
-  
+  const cardRef = useRef<HTMLDivElement>(null);
+  const formRef = useRef<HTMLFormElement>(null);
+
   useEffect(() => {
-    // Redirect if already authenticated
-    if (isAuthenticated) {
-      navigate('/');
-    }
+    // Animation for the registration card
+    gsap.fromTo(
+      cardRef.current,
+      { y: 50, opacity: 0 },
+      { y: 0, opacity: 1, duration: 0.8, ease: "power3.out" }
+    );
     
-    // Apply animation
-    if (formRef.current) {
-      animations.popIn(formRef.current, 0.2);
-    }
-    
-    // Background animation
-    const timeline = gsap.timeline();
-    timeline.fromTo('.bg-circles .circle', 
-      { scale: 0, opacity: 0 },
+    // Staggered animation for form fields
+    gsap.fromTo(
+      formRef.current?.querySelectorAll('.form-field'),
+      { y: 20, opacity: 0 },
       { 
-        scale: 1, 
-        opacity: 0.7, 
-        stagger: 0.2, 
-        duration: 1.5, 
-        ease: 'elastic.out(1, 0.5)' 
+        y: 0, 
+        opacity: 1, 
+        duration: 0.5, 
+        stagger: 0.1, 
+        ease: "back.out(1.7)",
+        delay: 0.3
       }
     );
-  }, [isAuthenticated, navigate]);
-  
+  }, []);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
-    
-    // Validate inputs
-    if (!name || !email || !password || !confirmPassword) {
-      setError('All fields are required');
-      return;
-    }
     
     if (password !== confirmPassword) {
-      setError('Passwords do not match');
+      toast({
+        title: "Passwords don't match",
+        description: "Please make sure your passwords match.",
+        variant: "destructive",
+      });
       return;
     }
     
-    setIsSubmitting(true);
+    setIsLoading(true);
     
     try {
-      const success = await register({ name, email, password });
-      if (success) {
-        toast({
-          title: "Registration successful!",
-          description: "Your account has been created.",
-        });
-        navigate('/questionnaire');
-      } else {
-        setError('Registration failed. Please try again.');
-      }
+      await register({ name, email, password, role });
+      toast({
+        title: "Registration successful",
+        description: role === 'broker' 
+          ? "Your broker account has been created. Please wait for admin approval."
+          : "Your account has been created. You can now log in."
+      });
+      navigate('/login');
     } catch (error) {
-      setError('An unexpected error occurred');
+      toast({
+        title: "Registration failed",
+        description: error instanceof Error ? error.message : "An error occurred during registration.",
+        variant: "destructive",
+      });
     } finally {
-      setIsSubmitting(false);
+      setIsLoading(false);
     }
   };
-  
+
   return (
     <div className="min-h-screen flex flex-col">
       <Navbar />
-      
-      {/* Background animation */}
-      <div className="bg-circles fixed inset-0 -z-10 overflow-hidden">
-        <div className="circle absolute top-1/4 left-1/4 w-64 h-64 rounded-full bg-groww-soft-purple opacity-20"></div>
-        <div className="circle absolute top-3/4 right-1/4 w-80 h-80 rounded-full bg-groww-light-purple opacity-20"></div>
-        <div className="circle absolute bottom-1/4 left-1/3 w-48 h-48 rounded-full bg-groww-purple opacity-10"></div>
-      </div>
-      
-      <div className="flex-grow flex items-center justify-center px-4 py-12">
-        <div ref={formRef} className="w-full max-w-md">
-          <Card className="shadow-lg">
-            <CardHeader className="space-y-2">
-              <CardTitle className="text-2xl font-bold text-center">Create an Account</CardTitle>
-              <CardDescription className="text-center">
-                Join AptMatchBuddy and find your perfect apartment match
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <form onSubmit={handleSubmit} className="space-y-4">
-                {error && (
-                  <div className="bg-red-50 text-red-600 p-3 rounded-md text-sm">
-                    {error}
-                  </div>
-                )}
-                
-                <div className="space-y-2">
-                  <label htmlFor="name" className="text-sm font-medium">
-                    Full Name
-                  </label>
-                  <Input
-                    id="name"
-                    type="text"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    placeholder="John Doe"
-                    required
-                  />
-                </div>
-                
-                <div className="space-y-2">
-                  <label htmlFor="email" className="text-sm font-medium">
-                    Email Address
-                  </label>
-                  <Input
-                    id="email"
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="john@example.com"
-                    required
-                  />
-                </div>
-                
-                <div className="space-y-2">
-                  <label htmlFor="password" className="text-sm font-medium">
-                    Password
-                  </label>
-                  <Input
-                    id="password"
-                    type="password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder="••••••••"
-                    required
-                  />
-                </div>
-                
-                <div className="space-y-2">
-                  <label htmlFor="confirmPassword" className="text-sm font-medium">
-                    Confirm Password
-                  </label>
-                  <Input
-                    id="confirmPassword"
-                    type="password"
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    placeholder="••••••••"
-                    required
-                  />
-                </div>
-                
-                <Button 
-                  type="submit" 
-                  className="w-full bg-groww-purple hover:bg-groww-purple-dark"
-                  disabled={isSubmitting}
-                >
-                  {isSubmitting ? 'Creating Account...' : 'Create Account'}
-                </Button>
-              </form>
-            </CardContent>
-            <CardFooter className="flex justify-center">
-              <p className="text-sm text-gray-600">
-                Already have an account?{' '}
-                <Link to="/login" className="text-groww-purple hover:underline">
-                  Log in
-                </Link>
-              </p>
-            </CardFooter>
-          </Card>
-        </div>
-      </div>
-      
+      <main className="flex-grow flex items-center justify-center bg-gray-50 py-12 px-4">
+        <Card ref={cardRef} className="w-full max-w-md">
+          <CardHeader>
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="mb-2 p-0 text-groww-purple hover:text-groww-purple-dark"
+              onClick={() => navigate(-1)}
+            >
+              <ArrowLeft size={16} className="mr-2" /> Back
+            </Button>
+            <CardTitle className="text-2xl font-bold text-groww-dark">Create an Account</CardTitle>
+            <CardDescription>
+              Enter your information to create an account
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form ref={formRef} onSubmit={handleSubmit} className="space-y-4">
+              <div className="form-field space-y-2">
+                <Label htmlFor="name">Full Name</Label>
+                <Input
+                  id="name"
+                  placeholder="Enter your full name"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  required
+                />
+              </div>
+              
+              <div className="form-field space-y-2">
+                <Label htmlFor="email">Email Address</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="Enter your email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                />
+              </div>
+              
+              <div className="form-field space-y-2">
+                <Label htmlFor="password">Password</Label>
+                <Input
+                  id="password"
+                  type="password"
+                  placeholder="Create a password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  minLength={8}
+                />
+              </div>
+              
+              <div className="form-field space-y-2">
+                <Label htmlFor="confirmPassword">Confirm Password</Label>
+                <Input
+                  id="confirmPassword"
+                  type="password"
+                  placeholder="Confirm your password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  required
+                />
+              </div>
+              
+              <div className="form-field space-y-2">
+                <Label htmlFor="role">I am a</Label>
+                <Select value={role} onValueChange={setRole}>
+                  <SelectTrigger id="role">
+                    <SelectValue placeholder="Select your role" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="user">Apartment Seeker</SelectItem>
+                    <SelectItem value="broker">Property Broker</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <Button 
+                type="submit" 
+                className="w-full bg-groww-purple hover:bg-groww-purple-dark mt-6" 
+                disabled={isLoading}
+              >
+                {isLoading ? "Creating Account..." : "Create Account"}
+              </Button>
+            </form>
+          </CardContent>
+          <CardFooter className="flex justify-center">
+            <p className="text-sm text-center text-gray-600">
+              Already have an account?{" "}
+              <Link to="/login" className="text-groww-purple hover:underline">
+                Log In
+              </Link>
+            </p>
+          </CardFooter>
+        </Card>
+      </main>
       <Footer />
     </div>
   );
