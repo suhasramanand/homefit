@@ -6,6 +6,7 @@ import { useToast } from '@/components/ui/use-toast';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import { 
   Card, 
   CardContent, 
@@ -21,7 +22,7 @@ import {
   SelectTrigger, 
   SelectValue 
 } from '@/components/ui/select';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Upload } from 'lucide-react';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import gsap from 'gsap';
@@ -38,8 +39,18 @@ const Register = () => {
   const [role, setRole] = useState('user');
   const [isLoading, setIsLoading] = useState(false);
   
+  // Broker specific fields
+  const [showBrokerFields, setShowBrokerFields] = useState(false);
+  const [licenseNumber, setLicenseNumber] = useState('');
+  const [licenseFile, setLicenseFile] = useState<File | null>(null);
+  const [companyName, setCompanyName] = useState('');
+  const [businessAddress, setBusinessAddress] = useState('');
+  const [yearsOfExperience, setYearsOfExperience] = useState('');
+  const [specializations, setSpecializations] = useState('');
+  
   const cardRef = useRef<HTMLDivElement>(null);
   const formRef = useRef<HTMLFormElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     // Animation for the registration card
@@ -64,6 +75,21 @@ const Register = () => {
     );
   }, []);
 
+  useEffect(() => {
+    // Toggle broker fields visibility
+    setShowBrokerFields(role === 'broker');
+  }, [role]);
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      setLicenseFile(e.target.files[0]);
+    }
+  };
+
+  const triggerFileInput = () => {
+    fileInputRef.current?.click();
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -79,7 +105,32 @@ const Register = () => {
     setIsLoading(true);
     
     try {
-      await register({ name, email, password, role });
+      const userData: any = { name, email, password, role };
+      
+      // Add broker verification data if role is broker
+      if (role === 'broker') {
+        if (!licenseNumber || !licenseFile || !companyName) {
+          throw new Error("License number, license document, and company name are required for broker registration.");
+        }
+
+        // Create form data for file upload
+        const formData = new FormData();
+        formData.append('name', name);
+        formData.append('email', email);
+        formData.append('password', password);
+        formData.append('role', role);
+        formData.append('licenseNumber', licenseNumber);
+        formData.append('licenseDocument', licenseFile);
+        formData.append('companyName', companyName);
+        formData.append('businessAddress', businessAddress);
+        formData.append('yearsOfExperience', yearsOfExperience);
+        formData.append('specializations', specializations);
+        
+        await register(formData);
+      } else {
+        await register(userData);
+      }
+      
       toast({
         title: "Registration successful",
         description: role === 'broker' 
@@ -179,6 +230,95 @@ const Register = () => {
                   </SelectContent>
                 </Select>
               </div>
+              
+              {showBrokerFields && (
+                <div className="form-field space-y-4 border rounded-md p-4 bg-gray-50 animate-fade-in">
+                  <h3 className="font-medium text-gray-800">Broker Verification</h3>
+                  <p className="text-sm text-gray-500 mb-3">
+                    Please provide your broker details for verification. Your account will need admin approval before listing properties.
+                  </p>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="licenseNumber">License Number</Label>
+                    <Input
+                      id="licenseNumber"
+                      placeholder="Enter your license number"
+                      value={licenseNumber}
+                      onChange={(e) => setLicenseNumber(e.target.value)}
+                      required={role === 'broker'}
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="companyName">Company Name</Label>
+                    <Input
+                      id="companyName"
+                      placeholder="Enter your company name"
+                      value={companyName}
+                      onChange={(e) => setCompanyName(e.target.value)}
+                      required={role === 'broker'}
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="businessAddress">Business Address</Label>
+                    <Textarea
+                      id="businessAddress"
+                      placeholder="Enter your business address"
+                      value={businessAddress}
+                      onChange={(e) => setBusinessAddress(e.target.value)}
+                      rows={2}
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="yearsOfExperience">Years of Experience</Label>
+                    <Input
+                      id="yearsOfExperience"
+                      type="number"
+                      min="0"
+                      placeholder="Years of experience"
+                      value={yearsOfExperience}
+                      onChange={(e) => setYearsOfExperience(e.target.value)}
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="specializations">Specializations</Label>
+                    <Input
+                      id="specializations"
+                      placeholder="e.g., Luxury, Commercial, Residential"
+                      value={specializations}
+                      onChange={(e) => setSpecializations(e.target.value)}
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="licenseDocument">License Document</Label>
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      id="licenseDocument"
+                      className="hidden"
+                      accept=".pdf,.jpg,.jpeg,.png"
+                      onChange={handleFileChange}
+                      required={role === 'broker'}
+                    />
+                    <div
+                      onClick={triggerFileInput}
+                      className="cursor-pointer border-2 border-dashed border-gray-300 rounded-md p-4 flex flex-col items-center justify-center text-gray-500 hover:border-groww-purple transition-colors"
+                    >
+                      <Upload size={24} className="mb-2" />
+                      <p className="text-sm font-medium">
+                        {licenseFile ? licenseFile.name : "Click to upload license document"}
+                      </p>
+                      <p className="text-xs mt-1">
+                        PDF, JPG, JPEG or PNG (max 5MB)
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
               
               <Button 
                 type="submit" 

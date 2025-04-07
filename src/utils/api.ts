@@ -1,5 +1,6 @@
 
 import { toast } from "@/components/ui/use-toast";
+import { groqApi } from "./groqApi";
 
 const API_URL = 'http://localhost:5000/api';
 
@@ -59,13 +60,34 @@ export const api = {
       }
     },
     
-    register: async (userData: { name: string, email: string, password: string, role?: string }) => {
+    register: async (userData: FormData | { name: string, email: string, password: string, role?: string }) => {
       try {
-        const response = await fetch(`${API_URL}/auth/register`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(userData),
-        });
+        let response;
+        
+        if (userData instanceof FormData) {
+          // If FormData is provided (for broker registration with files)
+          const role = userData.get('role');
+          
+          if (role === 'broker') {
+            response = await fetch(`${API_URL}/auth/register/broker`, {
+              method: 'POST',
+              body: userData,
+            });
+          } else {
+            response = await fetch(`${API_URL}/auth/register`, {
+              method: 'POST',
+              body: userData,
+            });
+          }
+        } else {
+          // Regular registration
+          response = await fetch(`${API_URL}/auth/register`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(userData),
+          });
+        }
+        
         const data = await handleResponse(response);
         
         // Store token in localStorage
@@ -189,13 +211,24 @@ export const api = {
       }
     },
     
-    updateProfile: async (profileData: any) => {
+    updateProfile: async (profileData: FormData | any) => {
       try {
-        const response = await fetch(`${API_URL}/users/profile`, {
-          method: 'PUT',
-          headers: headers(),
-          body: JSON.stringify(profileData),
-        });
+        let response;
+        
+        if (profileData instanceof FormData) {
+          response = await fetch(`${API_URL}/users/profile`, {
+            method: 'PUT',
+            headers: { 'Authorization': `Bearer ${getToken()}` },
+            body: profileData,
+          });
+        } else {
+          response = await fetch(`${API_URL}/users/profile`, {
+            method: 'PUT',
+            headers: headers(),
+            body: JSON.stringify(profileData),
+          });
+        }
+        
         return await handleResponse(response);
       } catch (error: any) {
         return handleError(error);
@@ -282,27 +315,31 @@ export const api = {
       } catch (error: any) {
         return handleError(error);
       }
-    },
-    
-    apply: async (applicationData: any) => {
-      try {
-        const response = await fetch(`${API_URL}/brokers/apply`, {
-          method: 'POST',
-          headers: headers(),
-          body: JSON.stringify(applicationData),
-        });
-        return await handleResponse(response);
-      } catch (error: any) {
-        return handleError(error);
-      }
     }
   },
   
   // Admin endpoints
   admin: {
-    getAllBrokers: async () => {
+    getAllBrokers: async (status?: string) => {
       try {
-        const response = await fetch(`${API_URL}/brokers`, {
+        let url = `${API_URL}/brokers`;
+        
+        if (status && status !== 'all') {
+          url += `?status=${status}`;
+        }
+        
+        const response = await fetch(url, {
+          headers: headers(),
+        });
+        return await handleResponse(response);
+      } catch (error: any) {
+        return handleError(error);
+      }
+    },
+    
+    getAllUsers: async () => {
+      try {
+        const response = await fetch(`${API_URL}/users`, {
           headers: headers(),
         });
         return await handleResponse(response);
@@ -320,6 +357,61 @@ export const api = {
         return await handleResponse(response);
       } catch (error: any) {
         return handleError(error);
+      }
+    },
+    
+    rejectBroker: async (userId: string, reason: string) => {
+      try {
+        const response = await fetch(`${API_URL}/brokers/reject/${userId}`, {
+          method: 'PUT',
+          headers: headers(),
+          body: JSON.stringify({ reason }),
+        });
+        return await handleResponse(response);
+      } catch (error: any) {
+        return handleError(error);
+      }
+    },
+    
+    revokeBroker: async (userId: string, reason: string) => {
+      try {
+        const response = await fetch(`${API_URL}/brokers/revoke/${userId}`, {
+          method: 'PUT',
+          headers: headers(),
+          body: JSON.stringify({ reason }),
+        });
+        return await handleResponse(response);
+      } catch (error: any) {
+        return handleError(error);
+      }
+    }
+  },
+  
+  // Groq AI integration
+  groq: {
+    getExplanation: async (prompt: string): Promise<string> => {
+      try {
+        // First try to use the backend API if available
+        try {
+          const response = await fetch(`${API_URL}/ai/explain`, {
+            method: 'POST',
+            headers: headers(),
+            body: JSON.stringify({ prompt }),
+          });
+          
+          if (response.ok) {
+            const data = await response.json();
+            return data.explanation;
+          }
+        } catch (err) {
+          console.log('Backend AI service unavailable, falling back to client-side');
+        }
+        
+        // Fallback to client-side implementation
+        return await groqApi.getCompletion(prompt);
+      } catch (error: any) {
+        console.error('Error getting AI explanation:', error);
+        return '';
       }
     }
   }

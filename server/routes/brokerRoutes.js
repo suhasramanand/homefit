@@ -3,12 +3,50 @@ const express = require('express');
 const User = require('../models/User');
 const Apartment = require('../models/Apartment');
 const { auth, isBroker, isAdmin } = require('../middleware/auth');
+const multer = require('multer');
+const path = require('path');
 const router = express.Router();
+
+// Set up storage for files
+const storage = multer.diskStorage({
+  destination: function(req, file, cb) {
+    cb(null, 'uploads/');
+  },
+  filename: function(req, file, cb) {
+    cb(null, Date.now() + path.extname(file.originalname));
+  }
+});
+
+const upload = multer({ 
+  storage: storage,
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
+  fileFilter: function(req, file, cb) {
+    const filetypes = /jpeg|jpg|png|webp/;
+    const extname = filetypes.test(path.extname(file.originalname).toLowerCase());
+    const mimetype = filetypes.test(file.mimetype);
+    
+    if (mimetype && extname) {
+      return cb(null, true);
+    } else {
+      cb('Error: Images only!');
+    }
+  }
+});
 
 // Get all brokers (admin only)
 router.get('/', auth, isAdmin, async (req, res) => {
   try {
-    const brokers = await User.find({ role: 'broker' }).select('-password');
+    const { status } = req.query;
+    const filter = { role: 'broker' };
+    
+    if (status && ['pending', 'approved', 'rejected'].includes(status)) {
+      filter['brokerVerification.status'] = status;
+    }
+    
+    const brokers = await User.find(filter)
+      .select('-password')
+      .sort({ createdAt: -1 });
+      
     res.json(brokers);
   } catch (error) {
     res.status(500).json({ message: 'Server error', error: error.message });
@@ -20,7 +58,13 @@ router.put('/approve/:userId', auth, isAdmin, async (req, res) => {
   try {
     const user = await User.findByIdAndUpdate(
       req.params.userId,
-      { $set: { role: 'broker' } },
+      { 
+        $set: { 
+          'brokerVerification.status': 'approved',
+          'brokerVerification.reviewedBy': req.user.id,
+          'brokerVerification.reviewedAt': Date.now()
+        } 
+      },
       { new: true, runValidators: true }
     ).select('-password');
     
@@ -28,8 +72,76 @@ router.put('/approve/:userId', auth, isAdmin, async (req, res) => {
       return res.status(404).json({ message: 'User not found' });
     }
     
+    // TODO: Send email notification to broker
+    
     res.json({ 
-      message: 'User approved as broker',
+      message: 'Broker approved successfully',
+      user
+    });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+});
+
+// Reject broker application (admin only)
+router.put('/reject/:userId', auth, isAdmin, async (req, res) => {
+  try {
+    const { reason } = req.body;
+    
+    const user = await User.findByIdAndUpdate(
+      req.params.userId,
+      { 
+        $set: { 
+          'brokerVerification.status': 'rejected',
+          'brokerVerification.rejectionReason': reason || 'No reason provided',
+          'brokerVerification.reviewedBy': req.user.id,
+          'brokerVerification.reviewedAt': Date.now()
+        } 
+      },
+      { new: true, runValidators: true }
+    ).select('-password');
+    
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+    
+    // TODO: Send email notification to broker
+    
+    res.json({ 
+      message: 'Broker application rejected',
+      user
+    });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+});
+
+// Revoke broker status (admin only)
+router.put('/revoke/:userId', auth, isAdmin, async (req, res) => {
+  try {
+    const { reason } = req.body;
+    
+    const user = await User.findByIdAndUpdate(
+      req.params.userId,
+      { 
+        $set: { 
+          'brokerVerification.status': 'rejected',
+          'brokerVerification.rejectionReason': reason || 'Privileges revoked by admin',
+          'brokerVerification.reviewedBy': req.user.id,
+          'brokerVerification.reviewedAt': Date.now()
+        } 
+      },
+      { new: true, runValidators: true }
+    ).select('-password');
+    
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+    
+    // TODO: Send email notification to broker
+    
+    res.json({ 
+      message: 'Broker privileges revoked',
       user
     });
   } catch (error) {
@@ -54,37 +166,15 @@ router.get('/:id', async (req, res) => {
   try {
     const broker = await User.findOne({ 
       _id: req.params.id, 
-      role: 'broker' 
-    }).select('name email');
+      role: 'broker',
+      'brokerVerification.status': 'approved'
+    }).select('name email companyName brokerVerification.companyName avatar');
     
     if (!broker) {
       return res.status(404).json({ message: 'Broker not found' });
     }
     
     res.json(broker);
-  } catch (error) {
-    res.status(500).json({ message: 'Server error', error: error.message });
-  }
-});
-
-// Apply to become a broker
-router.post('/apply', auth, async (req, res) => {
-  try {
-    // Additional broker application info could be added here
-    const { businessName, licenseNumber, experience } = req.body;
-    
-    // For now, we'll just flag the user for admin approval
-    res.json({ 
-      message: 'Application submitted for admin approval',
-      // In a real implementation, you might save this data to a pending applications collection
-      applicationData: {
-        userId: req.user.id,
-        businessName,
-        licenseNumber,
-        experience,
-        submittedAt: new Date()
-      }
-    });
   } catch (error) {
     res.status(500).json({ message: 'Server error', error: error.message });
   }

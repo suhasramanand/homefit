@@ -10,6 +10,10 @@ interface User {
   name: string;
   email: string;
   role: 'user' | 'broker' | 'admin';
+  avatar?: string;
+  brokerVerification?: {
+    status: 'pending' | 'approved' | 'rejected';
+  };
 }
 
 interface AuthContextType {
@@ -17,8 +21,9 @@ interface AuthContextType {
   isAuthenticated: boolean;
   isLoading: boolean;
   login: (email: string, password: string) => Promise<boolean>;
-  register: (userData: { name: string, email: string, password: string, role?: string }) => Promise<boolean>;
+  register: (userData: FormData | { name: string, email: string, password: string, role?: string }) => Promise<boolean>;
   logout: () => void;
+  updateProfile: (profileData: FormData) => Promise<boolean>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -62,15 +67,41 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
   
-  const register = async (userData: { name: string, email: string, password: string, role?: string }): Promise<boolean> => {
+  const register = async (userData: FormData | { name: string, email: string, password: string, role?: string }): Promise<boolean> => {
     setIsLoading(true);
     try {
       const data = await api.auth.register(userData);
       if (data && data.user) {
-        setUser(data.user);
+        // For regular users, set user. For brokers, don't set user since they need approval
+        if (data.user.role !== 'broker' || (data.user.brokerVerification && data.user.brokerVerification.status === 'approved')) {
+          setUser(data.user);
+        }
+        
         toast({
           title: "Account created!",
-          description: "Your account has been successfully created.",
+          description: data.user.role === 'broker' 
+            ? "Your broker account has been submitted for approval. You'll receive an email when approved."
+            : "Your account has been successfully created.",
+        });
+        return true;
+      }
+      return false;
+    } catch (error) {
+      return false;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  
+  const updateProfile = async (profileData: FormData): Promise<boolean> => {
+    setIsLoading(true);
+    try {
+      const data = await api.user.updateProfile(profileData);
+      if (data && data.user) {
+        setUser(prev => prev ? { ...prev, ...data.user } : data.user);
+        toast({
+          title: "Profile updated!",
+          description: "Your profile has been successfully updated.",
         });
         return true;
       }
@@ -101,6 +132,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         login,
         register,
         logout,
+        updateProfile,
       }}
     >
       {children}

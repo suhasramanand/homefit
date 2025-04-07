@@ -37,6 +37,36 @@ const userSchema = new mongoose.Schema({
     bedrooms: Number,
     bathrooms: Number,
     amenities: [String]
+  },
+  // Added broker verification fields
+  brokerVerification: {
+    status: {
+      type: String,
+      enum: ['pending', 'approved', 'rejected'],
+      default: 'pending'
+    },
+    licenseNumber: String,
+    licenseDocument: String,
+    companyName: String,
+    businessAddress: String,
+    yearsOfExperience: Number,
+    specializations: [String],
+    submittedAt: Date,
+    reviewedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User'
+    },
+    reviewedAt: Date,
+    rejectionReason: String
+  },
+  avatar: String,
+  createdAt: {
+    type: Date,
+    default: Date.now
+  },
+  lastActive: {
+    type: Date,
+    default: Date.now
   }
 }, {
   timestamps: true
