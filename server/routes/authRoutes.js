@@ -1,6 +1,6 @@
 
 const express = require('express');
-const bcrypt = require('bcryptjs');
+const bcrypt = require('bcrypt'); // Using bcrypt instead of bcryptjs to match package.json
 const User = require('../models/User');
 const { auth } = require('../middleware/auth');
 const crypto = require('crypto');

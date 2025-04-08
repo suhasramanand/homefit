@@ -56,12 +56,14 @@ const BrokerManagement = () => {
     queryFn: () => api.admin.getAllBrokers(activeTab),
     staleTime: 60000,
     retry: 1,
-    onError: (err: Error) => {
-      toast({
-        title: "Error",
-        description: "Failed to load broker data: " + err.message,
-        variant: "destructive",
-      });
+    meta: {
+      onError: (err: Error) => {
+        toast({
+          title: "Error",
+          description: "Failed to load broker data: " + err.message,
+          variant: "destructive",
+        });
+      }
     }
   });
   
