@@ -1,5 +1,5 @@
 
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useQuestionnaire } from '@/contexts/QuestionnaireContext';
 import BasicInfo from './BasicInfo';
 import LocationPreferences from './LocationPreferences';
@@ -8,9 +8,10 @@ import Summary from './Summary';
 import gsap from 'gsap';
 
 const QuestionnaireContainer = () => {
-  const { currentStep, totalSteps } = useQuestionnaire();
+  const { currentStep, totalSteps, setCurrentStep } = useQuestionnaire();
   const progressRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
+  const [animating, setAnimating] = useState(false);
   
   useEffect(() => {
     // Header animation
@@ -30,7 +31,9 @@ const QuestionnaireContainer = () => {
 
   // Animation for step changes
   useEffect(() => {
-    if (contentRef.current) {
+    if (contentRef.current && !animating) {
+      setAnimating(true);
+      
       // First fade out
       gsap.to(contentRef.current, {
         opacity: 0, 
@@ -42,7 +45,10 @@ const QuestionnaireContainer = () => {
             opacity: 1,
             y: 0,
             duration: 0.5,
-            ease: "back.out(1.7)"
+            ease: "back.out(1.7)",
+            onComplete: () => {
+              setAnimating(false);
+            }
           });
         }
       });
@@ -54,20 +60,32 @@ const QuestionnaireContainer = () => {
         ease: "power3.inOut"
       });
     }
-  }, [currentStep, totalSteps]);
+  }, [currentStep, totalSteps, animating]);
+  
+  const goToNextStep = () => {
+    if (currentStep < totalSteps) {
+      setCurrentStep(currentStep + 1);
+    }
+  };
+  
+  const goToPrevStep = () => {
+    if (currentStep > 1) {
+      setCurrentStep(currentStep - 1);
+    }
+  };
   
   const renderStep = () => {
     switch (currentStep) {
       case 1:
-        return <BasicInfo />;
+        return <BasicInfo onNextStep={goToNextStep} />;
       case 2:
-        return <LocationPreferences />;
+        return <LocationPreferences onNextStep={goToNextStep} onPrevStep={goToPrevStep} />;
       case 3:
-        return <Preferences />;
+        return <Preferences onNextStep={goToNextStep} onPrevStep={goToPrevStep} />;
       case 4:
-        return <Summary />;
+        return <Summary onPrevStep={goToPrevStep} />;
       default:
-        return <BasicInfo />;
+        return <BasicInfo onNextStep={goToNextStep} />;
     }
   };
 
@@ -78,14 +96,14 @@ const QuestionnaireContainer = () => {
           <span className="text-sm font-medium text-gray-600">Step {currentStep} of {totalSteps}</span>
           <span className="text-sm font-medium text-groww-purple">{Math.round((currentStep / totalSteps) * 100)}% Complete</span>
         </div>
-        <div className="progress-indicator">
+        <div className="bg-gray-200 rounded-full h-2.5 overflow-hidden">
           <div 
-            className="progress-bar" 
+            className="progress-bar bg-groww-purple h-2.5 rounded-full transition-all duration-300 ease-out" 
             style={{ width: `${(currentStep / totalSteps) * 100}%` }}
           ></div>
         </div>
       </div>
-      <div ref={contentRef}>
+      <div ref={contentRef} className={`transition-all duration-300 ${animating ? 'opacity-0' : 'opacity-100'}`}>
         {renderStep()}
       </div>
     </div>

@@ -1,6 +1,6 @@
-import { api } from './api';
-import { store } from '../store/store';
-import { getMatchExplanation } from '../store/slices/explanationsSlice';
+
+import { store } from '@/store/store';
+import { fetchExplanation } from '@/store/slices/explanationsSlice';
 
 interface Apartment {
   id: string;
@@ -8,16 +8,13 @@ interface Apartment {
   price: number;
   location: {
     city: string;
-    state: string;
-    address: string;
+    neighborhood: string;
   };
   features: {
     bedrooms: number;
     bathrooms: number;
-    squareFeet: number;
   };
   amenities: string[];
-  description: string;
 }
 
 interface UserPreferences {
@@ -31,194 +28,160 @@ interface UserPreferences {
   amenities: string[];
 }
 
-// Calculate match score between an apartment and user preferences
+/**
+ * Calculate match score between apartment and user preferences
+ * @param apartment - The apartment to match
+ * @param preferences - User preferences
+ * @returns Score between 0-100
+ */
 export const calculateMatchScore = (apartment: Apartment, preferences: UserPreferences): number => {
   let score = 0;
-  let maxScore = 0;
+  const weights = {
+    budget: 30,
+    location: 25,
+    bedrooms: 15,
+    bathrooms: 10,
+    amenities: 20
+  };
   
-  // Budget match (25%)
-  maxScore += 25;
-  if (preferences.budget) {
-    // Perfect match if within 10% of preferred max
-    if (apartment.price <= preferences.budget.max) {
-      const budgetRatio = apartment.price / preferences.budget.max;
-      // Higher score if price is well within budget
-      if (budgetRatio <= 0.8) {
-        score += 25; // Perfect budget match
-      } else {
-        // Score decreases as price approaches max budget
-        score += 25 * (1 - ((budgetRatio - 0.8) / 0.2));
-      }
+  // Budget match (30%)
+  if (apartment.price >= preferences.budget.min && apartment.price <= preferences.budget.max) {
+    // Full score if within budget range
+    score += weights.budget;
+  } else {
+    // Partial score based on how close it is to budget range
+    const minDiff = Math.abs(apartment.price - preferences.budget.min) / preferences.budget.min;
+    const maxDiff = Math.abs(apartment.price - preferences.budget.max) / preferences.budget.max;
+    const closestDiff = Math.min(minDiff, maxDiff);
+    
+    if (closestDiff <= 0.2) { // Within 20% of budget
+      score += weights.budget * (1 - closestDiff);
     }
   }
   
   // Location match (25%)
-  maxScore += 25;
-  if (preferences.location && preferences.location.length > 0) {
-    // Check if apartment location matches any preferred location
-    const locationMatches = preferences.location.some(location => {
-      const lowerLocation = location.toLowerCase();
-      return (
-        apartment.location.city.toLowerCase().includes(lowerLocation) ||
-        apartment.location.state.toLowerCase().includes(lowerLocation) ||
-        apartment.location.address.toLowerCase().includes(lowerLocation)
-      );
-    });
-    
-    if (locationMatches) {
-      score += 25;
-    }
+  if (preferences.location.includes(apartment.location.neighborhood)) {
+    score += weights.location;
+  } else if (preferences.location.includes(apartment.location.city)) {
+    score += weights.location * 0.6; // Partial match for city
   }
   
   // Bedrooms match (15%)
-  maxScore += 15;
-  if (preferences.bedrooms) {
-    if (apartment.features.bedrooms >= preferences.bedrooms) {
-      // Perfect match if exact or more bedrooms
-      score += 15;
-    } else {
-      // Partial match if fewer bedrooms
-      score += 15 * (apartment.features.bedrooms / preferences.bedrooms);
+  if (apartment.features.bedrooms === preferences.bedrooms) {
+    score += weights.bedrooms;
+  } else {
+    const bedroomDiff = Math.abs(apartment.features.bedrooms - preferences.bedrooms);
+    if (bedroomDiff === 1) {
+      score += weights.bedrooms * 0.5; // Half score if off by 1
     }
   }
   
   // Bathrooms match (10%)
-  maxScore += 10;
-  if (preferences.bathrooms) {
-    if (apartment.features.bathrooms >= preferences.bathrooms) {
-      // Perfect match if exact or more bathrooms
-      score += 10;
-    } else {
-      // Partial match if fewer bathrooms
-      score += 10 * (apartment.features.bathrooms / preferences.bathrooms);
+  if (apartment.features.bathrooms === preferences.bathrooms) {
+    score += weights.bathrooms;
+  } else {
+    const bathroomDiff = Math.abs(apartment.features.bathrooms - preferences.bathrooms);
+    if (bathroomDiff <= 1) {
+      score += weights.bathrooms * (1 - bathroomDiff); // Scale based on difference
     }
   }
   
-  // Amenities match (25%)
-  maxScore += 25;
-  if (preferences.amenities && preferences.amenities.length > 0) {
-    const matchingAmenities = preferences.amenities.filter(amenity => 
-      apartment.amenities.includes(amenity)
-    );
+  // Amenities match (20%)
+  if (preferences.amenities.length > 0) {
+    const amenitiesFound = preferences.amenities.filter(a => 
+      apartment.amenities.includes(a)
+    ).length;
     
-    const amenityScore = (matchingAmenities.length / preferences.amenities.length) * 25;
-    score += amenityScore;
+    const amenityScore = amenitiesFound / preferences.amenities.length;
+    score += weights.amenities * amenityScore;
+  } else {
+    score += weights.amenities; // No preferences means full score
   }
   
-  // Calculate percentage score (0-100)
-  return maxScore > 0 ? Math.round((score / maxScore) * 100) : 0;
+  return Math.round(score);
 };
 
-// Generate a unique cache key for an apartment and preferences combination
-const generateCacheKey = (apartment: Apartment, preferences: UserPreferences): string => {
-  // Create a deterministic cache key based on apartment ID and preference values
-  const prefsKey = JSON.stringify({
-    budgetMin: preferences.budget?.min,
-    budgetMax: preferences.budget?.max,
-    locations: preferences.location?.join(','),
-    bedrooms: preferences.bedrooms,
-    bathrooms: preferences.bathrooms,
-    amenities: preferences.amenities?.join(',')
-  });
+/**
+ * Generate human-readable explanation for the match score
+ */
+export const getMatchExplanation = async (
+  apartment: Apartment, 
+  preferences: UserPreferences,
+  matchScore: number
+): Promise<string> => {
+  // Try to get explanation from Redux first
+  const state = store.getState();
+  const existingExplanation = state.explanations.explanations[apartment.id];
   
-  // Create a hash of the preferences
-  let prefsHash = 0;
-  for (let i = 0; i < prefsKey.length; i++) {
-    prefsHash = ((prefsHash << 5) - prefsHash) + prefsKey.charCodeAt(i);
-    prefsHash = prefsHash & prefsHash; // Convert to 32bit integer
+  if (existingExplanation) {
+    return existingExplanation;
   }
   
-  return `${apartment.id}_${prefsHash}`;
-};
-
-// Get match explanation using Groq API with Redis caching and rate limiting
-export const getMatchExplanation = async (apartment: Apartment, preferences: UserPreferences, matchScore: number): Promise<string> => {
+  // Dispatch action to fetch and store explanation
   try {
-    const cacheKey = generateCacheKey(apartment, preferences);
+    const action = await store.dispatch(fetchExplanation({
+      apartmentId: apartment.id,
+      apartment,
+      preferences,
+      matchScore
+    }));
     
-    // Check if we already have this explanation in the Redux store
-    const explanations = store.getState().explanations.explanations;
-    if (explanations[cacheKey]) {
-      return explanations[cacheKey];
-    }
-    
-    // Check rate limit info before making request
-    const { remaining, resetTime } = store.getState().explanations.rateLimit;
-    
-    if (remaining <= 0 && resetTime && resetTime > Date.now()) {
-      const minutes = Math.ceil((resetTime - Date.now()) / (1000 * 60));
-      return `Rate limit reached. Please try again in approximately ${minutes} minute${minutes !== 1 ? 's' : ''}.`;
-    }
-    
-    // Dispatch the async thunk to get the explanation
-    const resultAction = await store.dispatch(
-      getMatchExplanation({
-        apartment,
-        preferences,
-        matchScore,
-        cacheKey
-      })
-    );
-    
-    if (getMatchExplanation.fulfilled.match(resultAction)) {
-      return resultAction.payload.explanation;
+    // Access payload using unwrapResult or from the returned action
+    if (action.type === fetchExplanation.fulfilled.type) {
+      return action.payload;
     } else {
-      // If we hit an error, return a fallback explanation
       return generateFallbackExplanation(apartment, preferences, matchScore);
     }
   } catch (error) {
-    console.error('Error getting match explanation:', error);
+    console.error("Error fetching explanation:", error);
     return generateFallbackExplanation(apartment, preferences, matchScore);
   }
 };
 
-// Fallback explanation generator if API call fails
-const generateFallbackExplanation = (apartment: Apartment, preferences: UserPreferences, matchScore: number): string => {
-  const matchLevel = 
-    matchScore >= 90 ? 'excellent' :
-    matchScore >= 75 ? 'strong' :
-    matchScore >= 60 ? 'good' :
-    matchScore >= 40 ? 'moderate' :
-    'limited';
+/**
+ * Generate a basic explanation without AI when the API is unavailable
+ */
+const generateFallbackExplanation = (
+  apartment: Apartment, 
+  preferences: UserPreferences,
+  matchScore: number
+): string => {
+  let explanation = '';
   
-  let explanation = `This apartment is a ${matchLevel} match (${matchScore}%) based on your preferences.`;
-  
-  // Add budget comment
-  if (preferences.budget) {
-    if (apartment.price <= preferences.budget.max) {
-      explanation += ` The price of $${apartment.price} fits within your budget range.`;
-    } else {
-      explanation += ` The price of $${apartment.price} exceeds your maximum budget of $${preferences.budget.max}.`;
-    }
+  if (matchScore >= 80) {
+    explanation = `This apartment is an excellent match for you! `;
+  } else if (matchScore >= 60) {
+    explanation = `This apartment is a good match for you. `;
+  } else {
+    explanation = `This apartment meets some of your criteria. `;
   }
   
-  // Add location comment if specified
-  if (preferences.location && preferences.location.length > 0) {
-    const locationMatches = preferences.location.some(location => {
-      const lowerLocation = location.toLowerCase();
-      return (
-        apartment.location.city.toLowerCase().includes(lowerLocation) ||
-        apartment.location.state.toLowerCase().includes(lowerLocation)
-      );
-    });
-    
-    if (locationMatches) {
-      explanation += ` The location matches your preferred area.`;
-    } else {
-      explanation += ` The location is different from your preferred areas.`;
-    }
+  // Add budget explanation
+  if (apartment.price >= preferences.budget.min && apartment.price <= preferences.budget.max) {
+    explanation += `The price of $${apartment.price} falls within your budget range. `;
+  } else if (apartment.price < preferences.budget.min) {
+    explanation += `The price of $${apartment.price} is below your minimum budget of $${preferences.budget.min}. `;
+  } else {
+    explanation += `The price of $${apartment.price} is above your maximum budget of $${preferences.budget.max}. `;
   }
   
-  // Add bedroom/bathroom comment
-  if (preferences.bedrooms || preferences.bathrooms) {
-    explanation += ` It offers ${apartment.features.bedrooms} bedrooms and ${apartment.features.bathrooms} bathrooms`;
-    
-    if (preferences.bedrooms && apartment.features.bedrooms < preferences.bedrooms) {
-      explanation += ` (you preferred at least ${preferences.bedrooms} bedrooms)`;
+  // Add bedroom/bathroom explanation
+  if (apartment.features.bedrooms === preferences.bedrooms) {
+    explanation += `It has exactly your preferred number of bedrooms. `;
+  } else {
+    const diff = apartment.features.bedrooms - preferences.bedrooms;
+    explanation += `It has ${diff > 0 ? 'more' : 'fewer'} bedrooms than you preferred. `;
+  }
+  
+  // Add amenity matches
+  if (preferences.amenities.length > 0) {
+    const matches = preferences.amenities.filter(a => apartment.amenities.includes(a));
+    if (matches.length > 0) {
+      explanation += `The apartment includes ${matches.length} of your desired amenities. `;
     }
-    
-    explanation += '.';
   }
   
   return explanation;
 };
+
+export default { calculateMatchScore, getMatchExplanation };

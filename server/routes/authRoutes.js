@@ -1,4 +1,3 @@
-
 const express = require('express');
 const multer = require('multer');
 const path = require('path');
@@ -156,13 +155,10 @@ router.post('/login', async (req, res) => {
       return res.status(401).json({ message: 'Invalid email or password' });
     }
     
-    // For brokers, check verification status
-    if (user.role === 'broker' && user.brokerVerification && user.brokerVerification.status !== 'approved') {
-      return res.status(403).json({
-        message: 'Broker account pending approval. Please wait for admin verification.',
-        pendingApproval: true
-      });
-    }
+    // Allow broker login even if pending approval, but flag their status
+    const pendingApproval = user.role === 'broker' && 
+                           user.brokerVerification && 
+                           user.brokerVerification.status !== 'approved';
     
     // Update last active timestamp
     user.lastActive = Date.now();
@@ -172,7 +168,10 @@ router.post('/login', async (req, res) => {
     req.session.user = {
       id: user._id,
       email: user.email,
-      role: user.role
+      role: user.role,
+      brokerVerification: user.role === 'broker' ? {
+        status: user.brokerVerification?.status
+      } : undefined
     };
     
     res.json({
@@ -185,7 +184,8 @@ router.post('/login', async (req, res) => {
         avatar: user.avatar,
         brokerVerification: user.role === 'broker' ? {
           status: user.brokerVerification?.status
-        } : undefined
+        } : undefined,
+        pendingApproval: pendingApproval
       }
     });
   } catch (error) {
@@ -219,6 +219,38 @@ router.get('/check', (req, res) => {
   res.json({
     isAuthenticated: false
   });
+});
+
+// Create default admin account if it doesn't exist
+router.get('/setup-admin', async (req, res) => {
+  try {
+    // Check if admin exists
+    const adminExists = await User.findOne({ role: 'admin' });
+    
+    if (adminExists) {
+      return res.json({ message: 'Admin account already exists' });
+    }
+    
+    // Create default admin
+    const admin = new User({
+      name: 'Admin',
+      email: 'admin@aptmatchbuddy.com',
+      password: 'Admin123!',
+      role: 'admin'
+    });
+    
+    await admin.save();
+    
+    res.status(201).json({
+      message: 'Default admin account created',
+      credentials: {
+        email: 'admin@aptmatchbuddy.com',
+        password: 'Admin123!'
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
 });
 
 module.exports = router;

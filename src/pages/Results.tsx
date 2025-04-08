@@ -1,5 +1,5 @@
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { fetchApartments } from '@/store/slices/apartmentsSlice';
@@ -11,6 +11,7 @@ const Results = () => {
   const dispatch = useAppDispatch();
   const [searchParams] = useSearchParams();
   const { apartments, status, error } = useAppSelector(state => state.apartments);
+  const [sortOption, setSortOption] = useState('bestMatch'); // Default sort option
   
   useEffect(() => {
     // Parse filters from URL search params
@@ -35,6 +36,8 @@ const Results = () => {
           apartments={apartments}
           isLoading={status === 'loading'}
           error={error}
+          sortOption={sortOption}
+          onSortChange={setSortOption}
         />
       </main>
       <Footer />

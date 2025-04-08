@@ -2,119 +2,188 @@
 import React from 'react';
 import { useQuestionnaire } from '@/contexts/QuestionnaireContext';
 import { Button } from '@/components/ui/button';
-import { Label } from '@/components/ui/label';
+import { Card, CardContent, CardFooter } from '@/components/ui/card';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Label } from '@/components/ui/label';
+import { Home, Building, DollarSign, Bed } from 'lucide-react';
 import { Slider } from '@/components/ui/slider';
 
-const BasicInfo = () => {
-  const { data, updateData, currentStep, setCurrentStep, totalSteps } = useQuestionnaire();
+interface BasicInfoProps {
+  onNextStep: () => void;
+}
 
-  const handleNext = () => {
-    setCurrentStep(currentStep + 1);
+const BasicInfo: React.FC<BasicInfoProps> = ({ onNextStep }) => {
+  const { data, updateData } = useQuestionnaire();
+  
+  const handlePropertyTypeChange = (value: string) => {
+    updateData({ propertyType: value });
   };
-
+  
+  const handleBudgetChange = (values: number[]) => {
+    if (values.length === 2) {
+      updateData({ 
+        budgetMin: values[0],
+        budgetMax: values[1]
+      });
+    }
+  };
+  
+  const handleBedroomsChange = (value: string) => {
+    updateData({ bedrooms: value });
+  };
+  
+  const handleBathroomsChange = (value: string) => {
+    updateData({ bathrooms: value });
+  };
+  
+  const isDisabled = () => {
+    return !data.propertyType || !data.bedrooms || !data.bathrooms;
+  };
+  
   return (
-    <div className="form-step">
-      <div className="mb-8">
-        <h2 className="text-2xl font-bold text-groww-dark mb-2">Basic Information</h2>
-        <p className="text-gray-600">Let's start with some essential details about what you're looking for.</p>
-      </div>
-
-      <div className="space-y-6">
-        <div>
-          <Label className="text-base font-medium">I'm looking to</Label>
-          <RadioGroup
-            value={data.propertyType}
-            onValueChange={(value) => updateData({ propertyType: value })}
-            className="flex flex-wrap gap-4 mt-2"
+    <Card>
+      <CardContent className="pt-6">
+        <h2 className="text-2xl font-semibold mb-6">Let's get to know your basic preferences</h2>
+        
+        {/* Property Type */}
+        <div className="mb-8">
+          <h3 className="text-lg font-medium mb-4">What are you looking for?</h3>
+          <RadioGroup 
+            value={data.propertyType} 
+            onValueChange={handlePropertyTypeChange}
+            className="grid grid-cols-2 gap-4"
           >
-            <div className="flex items-center space-x-2">
-              <RadioGroupItem value="rent" id="rent" />
-              <Label htmlFor="rent" className="cursor-pointer">Rent</Label>
+            <div>
+              <RadioGroupItem 
+                value="rent" 
+                id="rent" 
+                className="peer sr-only" 
+              />
+              <Label
+                htmlFor="rent"
+                className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-white p-4 hover:bg-gray-50 hover:border-groww-soft-purple peer-data-[state=checked]:border-groww-purple [&:has([data-state=checked])]:border-groww-purple cursor-pointer"
+              >
+                <Home className="mb-3 h-6 w-6 text-groww-purple" />
+                <span>Rent</span>
+              </Label>
             </div>
-            <div className="flex items-center space-x-2">
-              <RadioGroupItem value="buy" id="buy" />
-              <Label htmlFor="buy" className="cursor-pointer">Buy</Label>
-            </div>
-          </RadioGroup>
-        </div>
-
-        <div>
-          <div className="flex justify-between items-center mb-2">
-            <Label className="text-base font-medium">Budget Range</Label>
-            <span className="text-groww-purple font-medium">${data.budgetMin} - ${data.budgetMax}</span>
-          </div>
-          <div className="py-5">
-            <Slider
-              defaultValue={[data.budgetMin, data.budgetMax]}
-              max={5000}
-              min={500}
-              step={100}
-              onValueChange={(values) => {
-                updateData({ budgetMin: values[0], budgetMax: values[1] });
-              }}
-            />
-          </div>
-        </div>
-
-        <div>
-          <Label className="text-base font-medium">Bedrooms</Label>
-          <RadioGroup
-            value={data.bedrooms}
-            onValueChange={(value) => updateData({ bedrooms: value })}
-            className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-2"
-          >
-            <div className="flex items-center justify-center space-x-2 border rounded-md p-3 hover:bg-accent cursor-pointer">
-              <RadioGroupItem value="studio" id="studio" className="sr-only" />
-              <Label htmlFor="studio" className="cursor-pointer text-center w-full">Studio</Label>
-            </div>
-            <div className="flex items-center justify-center space-x-2 border rounded-md p-3 hover:bg-accent cursor-pointer">
-              <RadioGroupItem value="1" id="1br" className="sr-only" />
-              <Label htmlFor="1br" className="cursor-pointer text-center w-full">1 Bedroom</Label>
-            </div>
-            <div className="flex items-center justify-center space-x-2 border rounded-md p-3 hover:bg-accent cursor-pointer">
-              <RadioGroupItem value="2" id="2br" className="sr-only" />
-              <Label htmlFor="2br" className="cursor-pointer text-center w-full">2 Bedrooms</Label>
-            </div>
-            <div className="flex items-center justify-center space-x-2 border rounded-md p-3 hover:bg-accent cursor-pointer">
-              <RadioGroupItem value="3+" id="3br" className="sr-only" />
-              <Label htmlFor="3br" className="cursor-pointer text-center w-full">3+ Bedrooms</Label>
+            
+            <div>
+              <RadioGroupItem 
+                value="buy" 
+                id="buy" 
+                className="peer sr-only" 
+              />
+              <Label
+                htmlFor="buy"
+                className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-white p-4 hover:bg-gray-50 hover:border-groww-soft-purple peer-data-[state=checked]:border-groww-purple [&:has([data-state=checked])]:border-groww-purple cursor-pointer"
+              >
+                <Building className="mb-3 h-6 w-6 text-groww-purple" />
+                <span>Buy</span>
+              </Label>
             </div>
           </RadioGroup>
         </div>
         
-        <div>
-          <Label className="text-base font-medium">Bathrooms</Label>
-          <RadioGroup
-            value={data.bathrooms}
-            onValueChange={(value) => updateData({ bathrooms: value })}
-            className="grid grid-cols-2 sm:grid-cols-3 gap-3 mt-2"
+        {/* Budget */}
+        <div className="mb-8">
+          <h3 className="text-lg font-medium mb-4">
+            <DollarSign className="inline-block h-5 w-5 mr-1 text-groww-purple" />
+            What's your budget?
+          </h3>
+          <div className="px-3">
+            <div className="flex justify-between mb-2">
+              <span className="text-sm text-gray-500">$500</span>
+              <span className="text-sm text-gray-500">$5,000+</span>
+            </div>
+            <Slider
+              value={[data.budgetMin, data.budgetMax]}
+              onValueChange={handleBudgetChange}
+              min={500}
+              max={5000}
+              step={100}
+              className="mb-4"
+            />
+            <div className="flex justify-between items-center">
+              <div className="bg-gray-100 px-3 py-1 rounded-md">
+                <span className="text-sm font-medium">Min: ${data.budgetMin}</span>
+              </div>
+              <div className="h-px w-8 bg-gray-300"></div>
+              <div className="bg-gray-100 px-3 py-1 rounded-md">
+                <span className="text-sm font-medium">Max: ${data.budgetMax}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        {/* Bedrooms */}
+        <div className="mb-8">
+          <h3 className="text-lg font-medium mb-4">
+            <Bed className="inline-block h-5 w-5 mr-1 text-groww-purple" />
+            How many bedrooms?
+          </h3>
+          <RadioGroup 
+            value={data.bedrooms} 
+            onValueChange={handleBedroomsChange}
+            className="grid grid-cols-5 gap-3"
           >
-            <div className="flex items-center justify-center space-x-2 border rounded-md p-3 hover:bg-accent cursor-pointer">
-              <RadioGroupItem value="1" id="1ba" className="sr-only" />
-              <Label htmlFor="1ba" className="cursor-pointer text-center w-full">1 Bath</Label>
-            </div>
-            <div className="flex items-center justify-center space-x-2 border rounded-md p-3 hover:bg-accent cursor-pointer">
-              <RadioGroupItem value="2" id="2ba" className="sr-only" />
-              <Label htmlFor="2ba" className="cursor-pointer text-center w-full">2 Baths</Label>
-            </div>
-            <div className="flex items-center justify-center space-x-2 border rounded-md p-3 hover:bg-accent cursor-pointer">
-              <RadioGroupItem value="3+" id="3ba" className="sr-only" />
-              <Label htmlFor="3ba" className="cursor-pointer text-center w-full">3+ Baths</Label>
-            </div>
+            {['Studio', '1', '2', '3', '4+'].map((option) => (
+              <div key={option}>
+                <RadioGroupItem 
+                  value={option} 
+                  id={`bedroom-${option}`} 
+                  className="peer sr-only" 
+                />
+                <Label
+                  htmlFor={`bedroom-${option}`}
+                  className="flex items-center justify-center rounded-md border-2 border-muted bg-white p-3 hover:bg-gray-50 hover:border-groww-soft-purple peer-data-[state=checked]:border-groww-purple [&:has([data-state=checked])]:border-groww-purple cursor-pointer text-center"
+                >
+                  {option}
+                </Label>
+              </div>
+            ))}
           </RadioGroup>
         </div>
-
-        <div className="pt-6 flex justify-end">
-          <Button 
-            onClick={handleNext}
-            className="bg-groww-purple hover:bg-groww-purple-dark text-white"
+        
+        {/* Bathrooms */}
+        <div className="mb-4">
+          <h3 className="text-lg font-medium mb-4">How many bathrooms?</h3>
+          <RadioGroup 
+            value={data.bathrooms} 
+            onValueChange={handleBathroomsChange}
+            className="grid grid-cols-5 gap-3"
           >
-            Continue
-          </Button>
+            {['1', '1.5', '2', '2.5', '3+'].map((option) => (
+              <div key={option}>
+                <RadioGroupItem 
+                  value={option} 
+                  id={`bathroom-${option}`} 
+                  className="peer sr-only" 
+                />
+                <Label
+                  htmlFor={`bathroom-${option}`}
+                  className="flex items-center justify-center rounded-md border-2 border-muted bg-white p-3 hover:bg-gray-50 hover:border-groww-soft-purple peer-data-[state=checked]:border-groww-purple [&:has([data-state=checked])]:border-groww-purple cursor-pointer text-center"
+                >
+                  {option}
+                </Label>
+              </div>
+            ))}
+          </RadioGroup>
         </div>
-      </div>
-    </div>
+      </CardContent>
+      <CardFooter className="flex justify-between border-t p-6">
+        <div className="text-sm text-gray-500">
+          Step 1 of 4
+        </div>
+        <Button
+          onClick={onNextStep}
+          disabled={isDisabled()}
+          className="bg-groww-purple hover:bg-groww-purple-dark"
+        >
+          Continue
+        </Button>
+      </CardFooter>
+    </Card>
   );
 };
 
