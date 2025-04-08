@@ -30,7 +30,7 @@ function App() {
   const { toast } = useToast();
   
   useEffect(() => {
-    // Create admin account on app startup
+    // Create admin account on app startup - make sure to use the correct port (5000)
     fetch('http://localhost:5000/api/auth/setup-admin')
       .then(res => res.json())
       .then(data => {
@@ -43,7 +43,11 @@ function App() {
           });
         }
       })
-      .catch(err => console.error('Error setting up admin:', err));
+      .catch(err => {
+        // More graceful error handling
+        console.error('Error setting up admin:', err);
+        // Don't show an error toast as this is not critical for the app to function
+      });
   }, [toast]);
   
   return (

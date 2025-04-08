@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import AdminLayout from '@/components/admin/AdminLayout';
@@ -55,21 +54,24 @@ const BrokerManagement = () => {
   } = useQuery({
     queryKey: ['brokers', activeTab],
     queryFn: () => api.admin.getAllBrokers(activeTab),
+    staleTime: 60000,
+    retry: 1,
+    onError: (err: Error) => {
+      toast({
+        title: "Error",
+        description: "Failed to load broker data: " + err.message,
+        variant: "destructive",
+      });
+    }
   });
   
-  if (error) {
-    toast({
-      title: "Error",
-      description: "Failed to load broker data.",
-      variant: "destructive",
-    });
-  }
-  
-  const filteredBrokers = brokers.filter((broker: any) =>
-    broker.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    broker.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (broker.brokerVerification?.companyName || '').toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredBrokers = Array.isArray(brokers) 
+    ? brokers.filter((broker: any) =>
+        broker.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        broker.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (broker.brokerVerification?.companyName || '').toLowerCase().includes(searchTerm.toLowerCase())
+      )
+    : [];
   
   const handleViewDetails = (broker: any) => {
     setSelectedBroker(broker);
@@ -132,9 +134,9 @@ const BrokerManagement = () => {
     }
   };
   
-  const pendingCount = brokers.filter((b: any) => b.brokerVerification?.status === 'pending').length;
-  const approvedCount = brokers.filter((b: any) => b.brokerVerification?.status === 'approved').length;
-  const rejectedCount = brokers.filter((b: any) => b.brokerVerification?.status === 'rejected').length;
+  const pendingCount = Array.isArray(brokers) ? brokers.filter((b: any) => b.brokerVerification?.status === 'pending').length : 0;
+  const approvedCount = Array.isArray(brokers) ? brokers.filter((b: any) => b.brokerVerification?.status === 'approved').length : 0;
+  const rejectedCount = Array.isArray(brokers) ? brokers.filter((b: any) => b.brokerVerification?.status === 'rejected').length : 0;
   
   return (
     <AdminLayout>
@@ -143,7 +145,6 @@ const BrokerManagement = () => {
         <Button onClick={() => refetch()}>Refresh</Button>
       </div>
       
-      {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
         <Card className="bg-amber-50 border-amber-200">
           <CardContent className="p-4 flex items-center">
@@ -182,7 +183,6 @@ const BrokerManagement = () => {
         </Card>
       </div>
       
-      {/* Search Bar */}
       <div className="relative w-full md:w-96 mb-6">
         <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-500" />
         <Input
@@ -193,7 +193,6 @@ const BrokerManagement = () => {
         />
       </div>
       
-      {/* Tabs for different broker statuses */}
       <Tabs defaultValue="pending" value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="mb-6">
           <TabsTrigger value="pending">Pending</TabsTrigger>
@@ -207,11 +206,11 @@ const BrokerManagement = () => {
             brokers={filteredBrokers.filter((b: any) => b.brokerVerification?.status === 'pending')}
             isLoading={isLoading}
             onViewDetails={handleViewDetails}
-            onApprove={(broker) => {
+            onApprove={(broker: any) => {
               setSelectedBroker(broker);
               setIsApproveDialogOpen(true);
             }}
-            onReject={(broker) => {
+            onReject={(broker: any) => {
               setSelectedBroker(broker);
               setIsRejectDialogOpen(true);
             }}
@@ -223,7 +222,7 @@ const BrokerManagement = () => {
             brokers={filteredBrokers.filter((b: any) => b.brokerVerification?.status === 'approved')}
             isLoading={isLoading}
             onViewDetails={handleViewDetails}
-            onRevoke={(broker) => {
+            onRevoke={(broker: any) => {
               setSelectedBroker(broker);
               setIsRevokeDialogOpen(true);
             }}
@@ -243,15 +242,15 @@ const BrokerManagement = () => {
             brokers={filteredBrokers}
             isLoading={isLoading}
             onViewDetails={handleViewDetails}
-            onApprove={(broker) => {
+            onApprove={(broker: any) => {
               setSelectedBroker(broker);
               setIsApproveDialogOpen(true);
             }}
-            onReject={(broker) => {
+            onReject={(broker: any) => {
               setSelectedBroker(broker);
               setIsRejectDialogOpen(true);
             }}
-            onRevoke={(broker) => {
+            onRevoke={(broker: any) => {
               setSelectedBroker(broker);
               setIsRevokeDialogOpen(true);
             }}
@@ -259,7 +258,6 @@ const BrokerManagement = () => {
         </TabsContent>
       </Tabs>
       
-      {/* View Broker Details Dialog */}
       <Dialog open={isViewDetailsOpen} onOpenChange={setIsViewDetailsOpen}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
@@ -420,7 +418,6 @@ const BrokerManagement = () => {
         </DialogContent>
       </Dialog>
       
-      {/* Approve Broker Dialog */}
       <Dialog open={isApproveDialogOpen} onOpenChange={setIsApproveDialogOpen}>
         <DialogContent>
           <DialogHeader>
@@ -444,7 +441,6 @@ const BrokerManagement = () => {
         </DialogContent>
       </Dialog>
       
-      {/* Reject Broker Dialog */}
       <Dialog open={isRejectDialogOpen} onOpenChange={setIsRejectDialogOpen}>
         <DialogContent>
           <DialogHeader>
@@ -480,7 +476,6 @@ const BrokerManagement = () => {
         </DialogContent>
       </Dialog>
       
-      {/* Revoke Broker Dialog */}
       <Dialog open={isRevokeDialogOpen} onOpenChange={setIsRevokeDialogOpen}>
         <DialogContent>
           <DialogHeader>
@@ -519,7 +514,6 @@ const BrokerManagement = () => {
   );
 };
 
-// BrokersList Component
 const BrokersList = ({ 
   brokers, 
   isLoading, 
@@ -527,7 +521,14 @@ const BrokersList = ({
   onApprove,
   onReject,
   onRevoke
-}: any) => {
+}: {
+  brokers: any[];
+  isLoading: boolean;
+  onViewDetails: (broker: any) => void;
+  onApprove?: (broker: any) => void;
+  onReject?: (broker: any) => void;
+  onRevoke?: (broker: any) => void;
+}) => {
   if (isLoading) {
     return (
       <Card>

@@ -1,4 +1,3 @@
-
 import { getCache, setCache } from './redisCache';
 
 // API base URL
@@ -60,7 +59,6 @@ export const api = {
         
         return handleResponse(response);
       } catch (error) {
-        // Allow broker to login even if account is pending
         if (error instanceof Error && error.message.includes('pending approval')) {
           return { pendingApproval: true, message: error.message };
         }
@@ -100,7 +98,6 @@ export const api = {
     },
     
     getCurrentUser: () => {
-      // Get user from localStorage
       const user = localStorage.getItem('user');
       return user ? JSON.parse(user) : null;
     },
@@ -198,7 +195,6 @@ export const api = {
   // Apartment endpoints
   apartments: {
     getAll: async (filters: object = {}) => {
-      // Convert filters to query string
       const params = new URLSearchParams();
       Object.entries(filters).forEach(([key, value]) => {
         if (value !== null && value !== undefined && value !== '') {
@@ -387,7 +383,6 @@ export const api = {
         return handleResponse(response);
       } catch (error) {
         console.error('Error fetching users:', error);
-        // Return mock data for development
         return [
           { id: '1', name: 'John Doe', email: 'john@example.com', role: 'user', createdAt: '2023-01-15', lastActive: '2023-04-10' },
           { id: '2', name: 'Jane Smith', email: 'jane@example.com', role: 'user', createdAt: '2023-02-20', lastActive: '2023-04-12' },
@@ -408,7 +403,6 @@ export const api = {
         return handleResponse(response);
       } catch (error) {
         console.error('Error fetching brokers:', error);
-        // Return mock data for development
         return [
           { 
             id: '1', 
@@ -463,7 +457,6 @@ export const api = {
         return handleResponse(response);
       } catch (error) {
         console.error('Error fetching listings:', error);
-        // Return mock data for development
         return [
           { 
             id: '1', 
@@ -503,7 +496,6 @@ export const api = {
         return handleResponse(response);
       } catch (error) {
         console.error('Error approving broker:', error);
-        // Mock success for development
         return { message: 'Broker approved successfully' };
       }
     },
@@ -522,7 +514,6 @@ export const api = {
         return handleResponse(response);
       } catch (error) {
         console.error('Error rejecting broker:', error);
-        // Mock success for development
         return { message: 'Broker application rejected' };
       }
     },
@@ -541,7 +532,6 @@ export const api = {
         return handleResponse(response);
       } catch (error) {
         console.error('Error revoking broker privileges:', error);
-        // Mock success for development
         return { message: 'Broker privileges revoked' };
       }
     },
@@ -556,7 +546,6 @@ export const api = {
         return handleResponse(response);
       } catch (error) {
         console.error('Error approving listing:', error);
-        // Mock success for development
         return { message: 'Listing approved successfully' };
       }
     },
@@ -571,7 +560,6 @@ export const api = {
         return handleResponse(response);
       } catch (error) {
         console.error('Error rejecting listing:', error);
-        // Mock success for development
         return { message: 'Listing rejected successfully' };
       }
     },
@@ -586,7 +574,6 @@ export const api = {
         return handleResponse(response);
       } catch (error) {
         console.error('Error fetching admin stats:', error);
-        // Return mock data for development
         return {
           userCount: 156,
           brokerCount: 24,
@@ -607,7 +594,6 @@ export const api = {
         return handleResponse(response);
       } catch (error) {
         console.error('Error fetching system settings:', error);
-        // Return mock data for development
         return {
           notifications: {
             newBrokerApplications: true,
@@ -648,7 +634,6 @@ export const api = {
         return handleResponse(response);
       } catch (error) {
         console.error('Error updating system settings:', error);
-        // Mock success for development
         return { message: 'Settings updated successfully' };
       }
     },
@@ -658,7 +643,6 @@ export const api = {
   ai: {
     getExplanation: async (apartmentId: string, preferences: object) => {
       try {
-        // Check if explanation exists in Redis cache
         const cacheKey = `explanation_${apartmentId}`;
         const cachedExplanation = await getCache(cacheKey);
         
@@ -667,7 +651,6 @@ export const api = {
           return cachedExplanation;
         }
         
-        // If not cached, get from API
         const response = await fetch(`${API_BASE_URL}/ai/explain`, {
           method: 'POST',
           headers: {
@@ -681,7 +664,6 @@ export const api = {
         
         const explanation = await handleResponse(response);
         
-        // Cache the explanation
         await setCache(cacheKey, explanation);
         
         return explanation;
