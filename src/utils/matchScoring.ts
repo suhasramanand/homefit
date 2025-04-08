@@ -119,10 +119,10 @@ export const calculateMatchScore = async (apartment: Apartment, userPreferences:
     // Cache the explanation in Redis
     await setCache(cacheKey, explanation);
     
-    // Update Redux store
+    // Update Redux store with properly typed explanation
     dispatch(setExplanation({ 
       key: apartment.id, 
-      explanation 
+      explanation
     }));
     
     return normalizedScore;
