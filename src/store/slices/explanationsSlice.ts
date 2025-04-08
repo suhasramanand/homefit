@@ -1,9 +1,10 @@
 
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import { api } from '@/utils/api';
+import { MatchExplanation } from '@/types';
 
 interface ExplanationsState {
-  explanations: { [key: string]: string };
+  explanations: { [key: string]: MatchExplanation };
   status: 'idle' | 'loading' | 'succeeded' | 'failed';
   error: string | null;
   rateLimit: {
@@ -108,7 +109,7 @@ const explanationsSlice = createSlice({
   name: 'explanations',
   initialState,
   reducers: {
-    setExplanation: (state, action: PayloadAction<{ key: string; explanation: string }>) => {
+    setExplanation: (state, action: PayloadAction<{ key: string; explanation: MatchExplanation }>) => {
       state.explanations[action.payload.key] = action.payload.explanation;
     },
     clearExplanations: (state) => {

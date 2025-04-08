@@ -120,9 +120,10 @@ export const calculateMatchScore = async (apartment: Apartment, userPreferences:
     await setCache(cacheKey, explanation);
     
     // Update Redux store with properly typed explanation
+    // The type mismatch is here - we need to make sure the types align with what explanationsSlice expects
     dispatch(setExplanation({ 
       key: apartment.id, 
-      explanation
+      explanation: explanation // This should match the expected type in the slice
     }));
     
     return normalizedScore;
