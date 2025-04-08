@@ -7,6 +7,12 @@ import Preferences from './Preferences';
 import Summary from './Summary';
 import gsap from 'gsap';
 
+// Define the prop types for each step component
+interface StepProps {
+  onNextStep: () => void;
+  onPrevStep?: () => void;
+}
+
 const QuestionnaireContainer = () => {
   const { currentStep, totalSteps, setCurrentStep } = useQuestionnaire();
   const progressRef = useRef<HTMLDivElement>(null);

@@ -30,7 +30,7 @@ export const updatePreferences = createAsyncThunk(
   'preferences/update',
   async (preferences: any, { rejectWithValue }) => {
     try {
-      const response = await api.user.updatePreferences(preferences);
+      const response = await api.user.savePreferences(preferences);
       return { preferences: response.preferences };
     } catch (error: any) {
       return rejectWithValue(error.message);

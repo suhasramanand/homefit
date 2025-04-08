@@ -1,156 +1,111 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { api } from '@/utils/api';
-import { useNavigate } from 'react-router-dom';
-import { useToast } from '@/components/ui/use-toast';
-import { animations } from '@/utils/animations';
+import { User } from '@/types';
 
-interface User {
-  id: string;
-  name: string;
-  email: string;
-  role: 'user' | 'broker' | 'admin';
-  avatar?: string;
-  brokerVerification?: {
-    status: 'pending' | 'approved' | 'rejected';
-  };
-}
-
-interface AuthContextType {
+export interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
   isLoading: boolean;
-  login: (email: string, password: string) => Promise<boolean>;
-  register: (userData: FormData | { name: string, email: string, password: string, role?: string }) => Promise<boolean>;
-  logout: () => void;
-  updateProfile: (profileData: FormData) => Promise<boolean>;
+  login: (email: string, password: string) => Promise<void>;
+  register: (userData: any) => Promise<void>;
+  logout: () => Promise<void>;
+  updateUserProfile: (userData: object | FormData) => Promise<void>;
 }
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
+const AuthContext = createContext<AuthContextType | null>(null);
 
-export const AuthProvider = ({ children }: { children: ReactNode }) => {
+export const useAuth = (): AuthContextType => {
+  const context = useContext(AuthContext);
+  if (!context) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
+  return context;
+};
+
+interface AuthProviderProps {
+  children: ReactNode;
+}
+
+export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const navigate = useNavigate();
-  const { toast } = useToast();
   
-  // Check if user is already logged in on initial load
   useEffect(() => {
-    const checkAuthentication = async () => {
+    // Check for stored token and validate on app load
+    const checkAuth = async () => {
       try {
-        const currentUser = await api.auth.checkAuth();
-        setUser(currentUser);
+        const token = localStorage.getItem('token');
+        if (token) {
+          const userData = await api.auth.validate();
+          setUser(userData);
+        }
       } catch (error) {
-        console.error("Authentication check failed:", error);
+        localStorage.removeItem('token');
+        setUser(null);
       } finally {
         setIsLoading(false);
-        
-        // Add entrance animation for the app when auth is loaded
-        const body = document.body;
-        animations.fadeIn(body, 0.2, 0.5);
       }
     };
     
-    checkAuthentication();
+    checkAuth();
   }, []);
   
-  const login = async (email: string, password: string): Promise<boolean> => {
+  const login = async (email: string, password: string) => {
     setIsLoading(true);
     try {
-      const data = await api.auth.login(email, password);
-      if (data && data.user) {
-        setUser(data.user);
-        toast({
-          title: "Welcome back!",
-          description: `You've successfully logged in as ${data.user.name}`,
-        });
-        return true;
-      }
-      return false;
-    } catch (error) {
-      return false;
+      const { user, token } = await api.auth.login({ email, password });
+      localStorage.setItem('token', token);
+      setUser(user);
     } finally {
       setIsLoading(false);
     }
   };
   
-  const register = async (userData: FormData | { name: string, email: string, password: string, role?: string }): Promise<boolean> => {
+  const register = async (userData: any) => {
     setIsLoading(true);
     try {
-      const data = await api.auth.register(userData);
-      if (data && data.user) {
-        // For regular users, set user. For brokers, don't set user since they need approval
-        if (data.user.role !== 'broker' || (data.user.brokerVerification && data.user.brokerVerification.status === 'approved')) {
-          setUser(data.user);
-        }
-        
-        toast({
-          title: "Account created!",
-          description: data.user.role === 'broker' 
-            ? "Your broker account has been submitted for approval. You'll receive an email when approved."
-            : "Your account has been successfully created.",
-        });
-        return true;
-      }
-      return false;
-    } catch (error) {
-      return false;
-    } finally {
-      setIsLoading(false);
-    }
-  };
-  
-  const updateProfile = async (profileData: FormData): Promise<boolean> => {
-    setIsLoading(true);
-    try {
-      const data = await api.user.updateProfile(profileData);
-      if (data && data.user) {
-        setUser(prev => prev ? { ...prev, ...data.user } : data.user);
-        toast({
-          title: "Profile updated!",
-          description: "Your profile has been successfully updated.",
-        });
-        return true;
-      }
-      return false;
-    } catch (error) {
-      return false;
+      const { user, token } = await api.auth.register(userData);
+      localStorage.setItem('token', token);
+      setUser(user);
     } finally {
       setIsLoading(false);
     }
   };
   
   const logout = async () => {
-    await api.auth.logout();
-    setUser(null);
-    toast({
-      title: "Logged out",
-      description: "You have been successfully logged out.",
-    });
-    navigate('/');
+    try {
+      await api.auth.logout();
+    } catch (error) {
+      console.error('Logout error:', error);
+    } finally {
+      localStorage.removeItem('token');
+      setUser(null);
+    }
+  };
+  
+  const updateUserProfile = async (userData: object | FormData) => {
+    setIsLoading(true);
+    try {
+      const updatedUser = await api.user.updateProfile(userData);
+      setUser(prev => ({ ...prev, ...updatedUser }));
+      return updatedUser;
+    } finally {
+      setIsLoading(false);
+    }
   };
   
   return (
-    <AuthContext.Provider
-      value={{
-        user,
-        isAuthenticated: !!user,
-        isLoading,
-        login,
-        register,
-        logout,
-        updateProfile,
-      }}
-    >
+    <AuthContext.Provider value={{ 
+      user, 
+      isAuthenticated: !!user, 
+      isLoading, 
+      login, 
+      register, 
+      logout,
+      updateUserProfile
+    }}>
       {children}
     </AuthContext.Provider>
   );
-};
-
-export const useAuth = (): AuthContextType => {
-  const context = useContext(AuthContext);
-  if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
-  return context;
 };

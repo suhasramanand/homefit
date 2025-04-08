@@ -1,6 +1,7 @@
 
 import { Apartment } from '@/types';
 import { UserPreferences } from '@/types';
+import { MatchExplanation } from '@/types';
 import { setExplanation } from '@/store/slices/explanationsSlice';
 import { getCache, setCache } from './redisCache';
 import { api } from './api';
@@ -14,7 +15,7 @@ export const calculateMatchScore = async (apartment: Apartment, userPreferences:
     
     if (cachedExplanation) {
       dispatch(setExplanation({ 
-        apartmentId: apartment.id, 
+        key: apartment.id, 
         explanation: cachedExplanation 
       }));
       return parseFloat(cachedExplanation.score || "0");
@@ -60,7 +61,7 @@ export const calculateMatchScore = async (apartment: Apartment, userPreferences:
     if (apartment.bedrooms === userPreferences.bedrooms) {
       score += 15;
       explanations.push("✓ Exact number of bedrooms");
-    } else if (apartment.bedrooms > userPreferences.bedrooms) {
+    } else if (apartment.bedrooms > userPreferences.bedrooms!) {
       score += 10;
       explanations.push(`✓ More bedrooms than requested (${apartment.bedrooms} vs ${userPreferences.bedrooms})`);
     } else {
@@ -68,7 +69,7 @@ export const calculateMatchScore = async (apartment: Apartment, userPreferences:
     }
     
     // Bathrooms match
-    if (apartment.bathrooms >= userPreferences.bathrooms) {
+    if (apartment.bathrooms >= userPreferences.bathrooms!) {
       score += 10;
       explanations.push("✓ Sufficient bathrooms");
     } else {
@@ -103,14 +104,14 @@ export const calculateMatchScore = async (apartment: Apartment, userPreferences:
     const normalizedScore = Math.min(Math.max(Math.round(score), 0), maxScore);
     
     // Create explanation object
-    const explanation = {
+    const explanation: MatchExplanation = {
       score: normalizedScore.toString(),
       breakdown: explanations,
       matchDetails: {
         location: apartment.location === userPreferences.location,
         price: apartment.price >= priceMin && apartment.price <= priceMax,
-        bedrooms: apartment.bedrooms >= userPreferences.bedrooms,
-        bathrooms: apartment.bathrooms >= userPreferences.bathrooms,
+        bedrooms: apartment.bedrooms >= (userPreferences.bedrooms || 0),
+        bathrooms: apartment.bathrooms >= (userPreferences.bathrooms || 0),
         petFriendly: !userPreferences.petFriendly || apartment.petFriendly
       }
     };
@@ -120,7 +121,7 @@ export const calculateMatchScore = async (apartment: Apartment, userPreferences:
     
     // Update Redux store
     dispatch(setExplanation({ 
-      apartmentId: apartment.id, 
+      key: apartment.id, 
       explanation 
     }));
     

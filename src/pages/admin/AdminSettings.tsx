@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import AdminLayout from '@/components/admin/AdminLayout';
@@ -33,13 +32,11 @@ const AdminSettings = () => {
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   
-  // Get system settings
   const { data: settings, isLoading } = useQuery({
     queryKey: ['admin-settings'],
     queryFn: api.admin.getSystemSettings,
   });
 
-  // Update password mutation
   const updatePasswordMutation = useMutation({
     mutationFn: api.auth.updatePassword,
     onSuccess: () => {
@@ -60,7 +57,6 @@ const AdminSettings = () => {
     }
   });
 
-  // Update system settings mutation
   const updateSettingsMutation = useMutation({
     mutationFn: api.admin.updateSystemSettings,
     onSuccess: () => {
@@ -318,7 +314,7 @@ const AdminSettings = () => {
         
         <TabsContent value="system">
           <div className="grid gap-6">
-            <Alert variant="warning">
+            <Alert>
               <AlertTriangle className="h-4 w-4" />
               <AlertTitle>Warning</AlertTitle>
               <AlertDescription>
