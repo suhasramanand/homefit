@@ -22,7 +22,12 @@ const neighborhoods = [
   'Riverside'
 ];
 
-const LocationPreferences = () => {
+interface LocationPreferencesProps {
+  onNextStep: () => void;
+  onPrevStep: () => void;
+}
+
+const LocationPreferences: React.FC<LocationPreferencesProps> = () => {
   const { data, updateData, currentStep, setCurrentStep } = useQuestionnaire();
   const [date, setDate] = React.useState<Date | undefined>(data.moveInDate ? new Date(data.moveInDate) : undefined);
 

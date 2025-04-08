@@ -7,7 +7,11 @@ import { Card } from '@/components/ui/card';
 import { Check } from 'lucide-react';
 import gsap from 'gsap';
 
-const Summary = () => {
+interface SummaryProps {
+  onPrevStep: () => void;
+}
+
+const Summary: React.FC<SummaryProps> = () => {
   const { data, currentStep, setCurrentStep } = useQuestionnaire();
   const navigate = useNavigate();
   const summaryRef = useRef<HTMLDivElement>(null);

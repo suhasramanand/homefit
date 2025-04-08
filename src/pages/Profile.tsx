@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/components/ui/use-toast';
@@ -14,7 +13,7 @@ import { User, Mail, MapPin, Save, Upload } from 'lucide-react';
 import gsap from 'gsap';
 
 const Profile = () => {
-  const { user, updateProfile } = useAuth();
+  const { user, updateUserProfile } = useAuth();
   const { toast } = useToast();
   
   const [name, setName] = useState('');
@@ -90,14 +89,12 @@ const Profile = () => {
         formData.append('avatar', avatarFile);
       }
       
-      const success = await updateProfile(formData);
+      await updateUserProfile(formData);
       
-      if (success) {
-        toast({
-          title: 'Profile updated',
-          description: 'Your profile information has been updated successfully.',
-        });
-      }
+      toast({
+        title: 'Profile updated',
+        description: 'Your profile information has been updated successfully.',
+      });
     } catch (error) {
       toast({
         title: 'Update failed',

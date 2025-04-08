@@ -7,7 +7,6 @@ import Preferences from './Preferences';
 import Summary from './Summary';
 import gsap from 'gsap';
 
-// Define the prop types for each step component
 interface StepProps {
   onNextStep: () => void;
   onPrevStep?: () => void;
@@ -85,10 +84,12 @@ const QuestionnaireContainer = () => {
       case 1:
         return <BasicInfo onNextStep={goToNextStep} />;
       case 2:
+        // We'll directly use the hook inside the component
         return <LocationPreferences onNextStep={goToNextStep} onPrevStep={goToPrevStep} />;
       case 3:
         return <Preferences onNextStep={goToNextStep} onPrevStep={goToPrevStep} />;
       case 4:
+        // We'll directly use the hook inside the component
         return <Summary onPrevStep={goToPrevStep} />;
       default:
         return <BasicInfo onNextStep={goToNextStep} />;

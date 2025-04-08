@@ -7,7 +7,7 @@ export interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
   isLoading: boolean;
-  login: (email: string, password: string) => Promise<void>;
+  login: (email: string, password: string) => Promise<boolean>;
   register: (userData: any) => Promise<void>;
   logout: () => Promise<void>;
   updateUserProfile: (userData: object | FormData) => Promise<void>;
@@ -37,7 +37,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       try {
         const token = localStorage.getItem('token');
         if (token) {
-          const userData = await api.auth.validate();
+          // Updated to use checkAuth instead of validate
+          const userData = await api.auth.checkAuth();
           setUser(userData);
         }
       } catch (error) {
@@ -51,12 +52,16 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     checkAuth();
   }, []);
   
-  const login = async (email: string, password: string) => {
+  const login = async (email: string, password: string): Promise<boolean> => {
     setIsLoading(true);
     try {
-      const { user, token } = await api.auth.login({ email, password });
+      const { user, token } = await api.auth.login(email, password);
       localStorage.setItem('token', token);
       setUser(user);
+      return true;
+    } catch (error) {
+      console.error('Login error:', error);
+      return false;
     } finally {
       setIsLoading(false);
     }

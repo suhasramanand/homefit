@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useAuth } from '@/contexts/AuthContext';
 import { Apartment, UserPreferences } from '@/types';
@@ -29,6 +29,10 @@ interface ResultsContainerProps {
   onFilterReset: () => void;
 }
 
+interface ApartmentWithScore extends Apartment {
+  matchScore: number;
+}
+
 const ResultsContainer: React.FC<ResultsContainerProps> = ({
   apartments,
   isLoading,
@@ -48,32 +52,42 @@ const ResultsContainer: React.FC<ResultsContainerProps> = ({
   const dispatch = useDispatch();
   const { user } = useAuth();
   const userPreferences = useSelector((state: RootState) => state.preferences.preferences) || user?.preferences;
+  const [apartmentsWithScores, setApartmentsWithScores] = useState<ApartmentWithScore[]>([]);
   
   // Calculate match score for each apartment
-  const apartmentsWithScore = React.useMemo(() => {
-    if (!apartments || apartments.length === 0) return [];
-    
-    return Promise.all(apartments.map(async (apt) => {
-      let score = 0;
-      
-      if (userPreferences) {
-        score = await calculateMatchScore(apt, userPreferences as UserPreferences, dispatch);
+  useEffect(() => {
+    const calculateScores = async () => {
+      if (!apartments || apartments.length === 0) {
+        setApartmentsWithScores([]);
+        return;
       }
       
-      return {
-        ...apt,
-        matchScore: score
-      };
-    }));
+      const scoredApartments = await Promise.all(apartments.map(async (apt) => {
+        let score = 0;
+        
+        if (userPreferences) {
+          score = await calculateMatchScore(apt, userPreferences as UserPreferences, dispatch);
+        }
+        
+        return {
+          ...apt,
+          matchScore: score
+        } as ApartmentWithScore;
+      }));
+      
+      setApartmentsWithScores(scoredApartments);
+    };
+    
+    calculateScores();
   }, [apartments, userPreferences, dispatch]);
   
   // Sort apartments based on the selected option
-  const getSortedApartments = (apts: (Apartment & { matchScore: number })[], sortBy: string) => {
+  const getSortedApartments = (apts: ApartmentWithScore[]): ApartmentWithScore[] => {
     if (!apts || apts.length === 0) return [];
     
     const sortedApts = [...apts];
     
-    switch (sortBy) {
+    switch (sortOption) {
       case 'priceAsc':
         return sortedApts.sort((a, b) => a.price - b.price);
       case 'priceDesc':
@@ -121,6 +135,8 @@ const ResultsContainer: React.FC<ResultsContainerProps> = ({
     );
   }
   
+  const sortedApartments = getSortedApartments(apartmentsWithScores);
+  
   return (
     <div className="container mx-auto px-4">
       <div className="flex flex-col md:flex-row gap-8">
@@ -162,12 +178,10 @@ const ResultsContainer: React.FC<ResultsContainerProps> = ({
           
           {apartments.length > 0 ? (
             <div className="space-y-6">
-              {getSortedApartments(apartmentsWithScore, sortOption).map((apartment) => (
+              {sortedApartments.map((apartment) => (
                 <ApartmentCard 
                   key={apartment.id} 
                   apartment={apartment} 
-                  showMatchScore={!!userPreferences}
-                  matchScore={apartment.matchScore}
                 />
               ))}
             </div>
