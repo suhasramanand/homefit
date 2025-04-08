@@ -1,388 +1,462 @@
 
-import React, { useEffect, useRef, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
-import ApartmentCard from '@/components/results/ApartmentCard';
-import { Button } from '@/components/ui/button';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Slider } from '@/components/ui/slider';
+import React, { useEffect, useState } from 'react';
+import { useAppDispatch, useAppSelector } from '@/store/hooks';
+import { Apartment } from '@/types';
+import { Link } from 'react-router-dom';
+import { calculateMatchScore } from '@/utils/matchScoring';
+import ApartmentCard from './ApartmentCard';
 import { Badge } from '@/components/ui/badge';
-import { Check, SlidersHorizontal, X } from 'lucide-react';
-import gsap from 'gsap';
-import { useToast } from '@/components/ui/use-toast';
+import { Button } from '@/components/ui/button';
+import { 
+  Filter, 
+  ArrowDownAZ, 
+  SortAsc, 
+  SortDesc,
+  X, 
+  Check,
+  CalendarClock, 
+  Hotel,
+  Bath
+} from 'lucide-react';
+import { 
+  Sheet,
+  SheetClose,
+  SheetContent,
+  SheetDescription,
+  SheetFooter,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectLabel,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Checkbox } from '@/components/ui/checkbox';
+import { Slider } from '@/components/ui/slider';
+import { Label } from '@/components/ui/label';
+import { Skeleton } from '@/components/ui/skeleton';
 
 interface ResultsContainerProps {
-  apartments: any[];
+  apartments: Apartment[];
   isLoading: boolean;
   error: string | null;
-  sortOption?: string;
-  onSortChange?: (option: string) => void;
+  sortOption: string;
+  onSortChange: (sortOption: string) => void;
+  priceRange: [number, number];
+  onPriceRangeChange: (range: [number, number]) => void;
+  bedroomFilter: string;
+  onBedroomFilterChange: (value: string) => void;
+  bathroomFilter: string;
+  onBathroomFilterChange: (value: string) => void;
+  amenityFilters: string[];
+  onAmenityFilterChange: (amenity: string, isChecked: boolean) => void;
+  onFilterReset: () => void;
 }
 
-const ResultsContainer: React.FC<ResultsContainerProps> = ({ 
-  apartments = [], 
+const amenitiesList = [
+  'Gym', 
+  'Pool', 
+  'Parking', 
+  'Balcony', 
+  'Dishwasher', 
+  'Air Conditioning',
+  'Washer/Dryer',
+  'Pet Friendly',
+  'Elevator',
+  'Doorman',
+  'Furnished'
+];
+
+const ResultsContainer: React.FC<ResultsContainerProps> = ({
+  apartments,
   isLoading,
   error,
-  sortOption = 'bestMatch',
-  onSortChange
+  sortOption,
+  onSortChange,
+  priceRange,
+  onPriceRangeChange,
+  bedroomFilter,
+  onBedroomFilterChange,
+  bathroomFilter,
+  onBathroomFilterChange,
+  amenityFilters,
+  onAmenityFilterChange,
+  onFilterReset
 }) => {
-  const [searchParams, setSearchParams] = useSearchParams();
-  const { toast } = useToast();
-  const headerRef = useRef<HTMLDivElement>(null);
-  const filtersRef = useRef<HTMLDivElement>(null);
-  const resultsRef = useRef<HTMLDivElement>(null);
-  
-  // Filter state
-  const [priceRange, setPriceRange] = useState<[number, number]>([1000, 3000]);
-  const [selectedBedrooms, setSelectedBedrooms] = useState<string>(searchParams.get('bedrooms') || '');
-  const [selectedBathrooms, setSelectedBathrooms] = useState<string>(searchParams.get('bathrooms') || '');
-  const [selectedNeighborhoods, setSelectedNeighborhoods] = useState<string[]>(
-    searchParams.get('neighborhoods')?.split(',') || []
-  );
-  const [selectedAmenities, setSelectedAmenities] = useState<string[]>(
-    searchParams.get('amenities')?.split(',') || []
-  );
-  
-  // Sorted apartments
-  const [sortedApartments, setSortedApartments] = useState<any[]>([]);
-  
-  // Sort apartments
-  useEffect(() => {
-    if (apartments.length === 0) return;
-    
-    let sorted = [...apartments];
-    
-    switch (sortOption) {
-      case 'bestMatch':
-        sorted.sort((a, b) => (b.matchScore || 0) - (a.matchScore || 0));
-        break;
-      case 'price-low':
-        sorted.sort((a, b) => a.price - b.price);
-        break;
-      case 'price-high':
-        sorted.sort((a, b) => b.price - a.price);
-        break;
-      case 'newest':
-        sorted.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-        break;
-      default:
-        break;
-    }
-    
-    setSortedApartments(sorted);
-  }, [apartments, sortOption]);
+  const dispatch = useAppDispatch();
+  const userPreferences = useAppSelector(state => state.preferences);
+  const [scoredApartments, setScoredApartments] = useState<any[]>([]);
+  const [filteredCount, setFilteredCount] = useState(0);
+  const [isFilterSheetOpen, setIsFilterSheetOpen] = useState(false);
+  const [localPriceRange, setLocalPriceRange] = useState<[number, number]>(priceRange);
   
   useEffect(() => {
-    // GSAP animations
-    const tl = gsap.timeline();
-    
-    // Header animation
-    if (headerRef.current) {
-      tl.fromTo(headerRef.current, 
-        { opacity: 0, y: -30 }, 
-        { opacity: 1, y: 0, duration: 0.8, ease: "power3.out" }
-      );
-    }
-    
-    // Filters animation
-    if (filtersRef.current) {
-      tl.fromTo(filtersRef.current, 
-        { opacity: 0, x: -30 }, 
-        { opacity: 1, x: 0, duration: 0.6, ease: "power3.out" },
-        "-=0.4"
-      );
-    }
-    
-    // Results animation with stagger effect
-    if (resultsRef.current?.children) {
-      tl.fromTo(resultsRef.current.children, 
-        { opacity: 0, y: 30 }, 
-        { opacity: 1, y: 0, duration: 0.6, ease: "back.out(1.7)", stagger: 0.1 },
-        "-=0.2"
-      );
-    }
-  }, []);
+    setLocalPriceRange(priceRange);
+  }, [priceRange]);
   
-  const handleBedroomSelect = (value: string) => {
-    setSelectedBedrooms(value === selectedBedrooms ? '' : value);
-  };
-  
-  const handleBathroomSelect = (value: string) => {
-    setSelectedBathrooms(value === selectedBathrooms ? '' : value);
-  };
-  
-  const handleNeighborhoodToggle = (value: string) => {
-    setSelectedNeighborhoods(prev => {
-      if (prev.includes(value)) {
-        return prev.filter(item => item !== value);
-      } else {
-        return [...prev, value];
+  // Calculate match scores when apartments or preferences change
+  useEffect(() => {
+    const calculateScores = async () => {
+      if (!apartments.length) return;
+      
+      // Calculate match scores for each apartment
+      const scoredApts = await Promise.all(
+        apartments.map(async (apt) => {
+          const score = await calculateMatchScore(apt, userPreferences, dispatch);
+          return { ...apt, matchScore: score };
+        })
+      );
+      
+      // Sort apartments based on the selected sort option
+      let sortedApartments = [...scoredApts];
+      
+      switch (sortOption) {
+        case 'priceAsc':
+          sortedApartments = sortedApartments.sort((a, b) => a.price - b.price);
+          break;
+        case 'priceDesc':
+          sortedApartments = sortedApartments.sort((a, b) => b.price - a.price);
+          break;
+        case 'newest':
+          sortedApartments = sortedApartments.sort(
+            (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+          );
+          break;
+        case 'bestMatch':
+        default:
+          sortedApartments = sortedApartments.sort((a, b) => b.matchScore - a.matchScore);
+          break;
       }
-    });
+      
+      setScoredApartments(sortedApartments);
+      setFilteredCount(sortedApartments.length);
+    };
+    
+    calculateScores();
+  }, [apartments, sortOption, userPreferences, dispatch]);
+  
+  const handleSortSelect = (value: string) => {
+    onSortChange(value);
   };
   
-  const handleAmenityToggle = (value: string) => {
-    setSelectedAmenities(prev => {
-      if (prev.includes(value)) {
-        return prev.filter(item => item !== value);
-      } else {
-        return [...prev, value];
-      }
-    });
+  const handlePriceRangeChange = (value: number[]) => {
+    setLocalPriceRange(value as [number, number]);
   };
   
-  const applyFilters = () => {
-    const params: any = {};
-    
-    if (priceRange[0] !== 1000) params.minPrice = priceRange[0].toString();
-    if (priceRange[1] !== 3000) params.maxPrice = priceRange[1].toString();
-    if (selectedBedrooms) params.bedrooms = selectedBedrooms;
-    if (selectedBathrooms) params.bathrooms = selectedBathrooms;
-    if (selectedNeighborhoods.length > 0) params.neighborhoods = selectedNeighborhoods.join(',');
-    if (selectedAmenities.length > 0) params.amenities = selectedAmenities.join(',');
-    
-    setSearchParams(params);
-    
-    toast({
-      title: "Filters Applied",
-      description: "Your search filters have been updated."
-    });
+  const applyPriceRange = () => {
+    onPriceRangeChange(localPriceRange);
   };
   
-  const resetFilters = () => {
-    setPriceRange([1000, 3000]);
-    setSelectedBedrooms('');
-    setSelectedBathrooms('');
-    setSelectedNeighborhoods([]);
-    setSelectedAmenities([]);
-    setSearchParams({});
-    
-    toast({
-      title: "Filters Reset",
-      description: "All search filters have been cleared."
-    });
+  const handleCheckboxChange = (amenity: string, checked: boolean) => {
+    onAmenityFilterChange(amenity, checked);
   };
   
-  // Loading state
+  const getFilterCount = () => {
+    let count = 0;
+    if (bedroomFilter) count++;
+    if (bathroomFilter) count++;
+    if (amenityFilters.length > 0) count++;
+    if (priceRange[0] > 0 || priceRange[1] < 10000) count++;
+    return count;
+  };
+  
+  const formatPrice = (price: number) => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+      maximumFractionDigits: 0
+    }).format(price);
+  };
+  
+  // Display loading state
   if (isLoading) {
     return (
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-center items-center py-12">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-groww-purple"></div>
+      <div className="container mx-auto px-4">
+        <div className="flex flex-col md:flex-row justify-between mb-6">
+          <h1 className="text-3xl font-bold mb-2 md:mb-0">Searching apartments...</h1>
+        </div>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {[1, 2, 3, 4, 5, 6].map((i) => (
+            <div key={i} className="bg-white rounded-lg overflow-hidden shadow-md">
+              <Skeleton className="h-48 w-full" />
+              <div className="p-4">
+                <Skeleton className="h-6 w-3/4 mb-2" />
+                <Skeleton className="h-4 w-1/2 mb-4" />
+                <div className="flex justify-between">
+                  <Skeleton className="h-5 w-1/3" />
+                  <Skeleton className="h-5 w-1/4" />
+                </div>
+              </div>
+            </div>
+          ))}
         </div>
       </div>
     );
   }
-  
-  // Error state
+
+  // Display error state
   if (error) {
     return (
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="py-12 text-center">
-          <h2 className="text-xl font-medium text-red-600 mb-2">Something went wrong</h2>
-          <p className="text-gray-600">{error}</p>
-          <Button 
-            variant="outline" 
-            className="mt-4"
-            onClick={() => window.location.reload()}
-          >
-            Try Again
+      <div className="container mx-auto px-4">
+        <div className="bg-red-50 p-6 rounded-lg border border-red-200 text-center">
+          <h2 className="text-2xl font-bold text-red-700 mb-2">Error Loading Apartments</h2>
+          <p className="text-red-600">{error}</p>
+          <Button variant="outline" className="mt-4">
+            <Link to="/">Return to Home</Link>
           </Button>
         </div>
       </div>
     );
   }
-  
+
+  // No results state
+  if (apartments.length === 0) {
+    return (
+      <div className="container mx-auto px-4">
+        <div className="text-center py-16">
+          <h2 className="text-3xl font-bold mb-4">No apartments found</h2>
+          <p className="text-gray-600 mb-8">Try adjusting your search criteria or exploring other neighborhoods.</p>
+          <Button asChild>
+            <Link to="/questionnaire">Update Preferences</Link>
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-      {/* Results header */}
-      <div ref={headerRef} className="mb-8">
-        <h1 className="text-3xl font-bold text-groww-dark mb-2">Your Apartment Matches</h1>
-        <p className="text-gray-600">
-          We found {apartments.length} apartments that match your preferences
-        </p>
-      </div>
-
-      <div className="flex flex-col lg:flex-row gap-6">
-        {/* Filters sidebar */}
-        <div ref={filtersRef} className="lg:w-1/4">
-          <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5 sticky top-4">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-lg font-semibold text-groww-dark">Filters</h2>
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                className="text-groww-purple hover:text-groww-purple-dark"
-                onClick={resetFilters}
-              >
-                Reset All
+    <div className="container mx-auto px-4">
+      <div className="flex flex-col md:flex-row justify-between mb-6">
+        <div>
+          <h1 className="text-3xl font-bold mb-2">Apartments for You</h1>
+          <p className="text-gray-600">
+            Found {filteredCount} {filteredCount === 1 ? 'apartment' : 'apartments'} that match your criteria
+          </p>
+        </div>
+        
+        <div className="flex items-center mt-4 md:mt-0 space-x-2">
+          <Select value={sortOption} onValueChange={handleSortSelect}>
+            <SelectTrigger className="w-[180px]">
+              <div className="flex items-center">
+                <ArrowDownAZ className="mr-2 h-4 w-4" />
+                <SelectValue placeholder="Sort by" />
+              </div>
+            </SelectTrigger>
+            <SelectContent>
+              <SelectGroup>
+                <SelectLabel>Sort Options</SelectLabel>
+                <SelectItem value="bestMatch">Best Match</SelectItem>
+                <SelectItem value="priceAsc">Price: Low to High</SelectItem>
+                <SelectItem value="priceDesc">Price: High to Low</SelectItem>
+                <SelectItem value="newest">Newest First</SelectItem>
+              </SelectGroup>
+            </SelectContent>
+          </Select>
+          
+          <Sheet open={isFilterSheetOpen} onOpenChange={setIsFilterSheetOpen}>
+            <SheetTrigger asChild>
+              <Button variant="outline" className="flex items-center">
+                <Filter className="mr-2 h-4 w-4" />
+                Filters
+                {getFilterCount() > 0 && (
+                  <Badge variant="secondary" className="ml-2 bg-groww-purple text-white">
+                    {getFilterCount()}
+                  </Badge>
+                )}
               </Button>
-            </div>
-
-            {/* Price filter */}
-            <div className="mb-6">
-              <label className="block text-sm font-medium mb-2">Price Range</label>
-              <div className="flex justify-between mb-2">
-                <span className="text-sm text-gray-500">$1000</span>
-                <span className="text-sm text-gray-500">$3500</span>
-              </div>
-              <Slider 
-                value={priceRange} 
-                onValueChange={setPriceRange} 
-                max={4000} 
-                min={500} 
-                step={100} 
-              />
-              <div className="mt-2 flex justify-between">
-                <span className="text-sm font-medium">${priceRange[0]}</span>
-                <span className="text-sm font-medium">${priceRange[1]}</span>
-              </div>
-            </div>
-
-            {/* Bedrooms filter */}
-            <div className="mb-6">
-              <label className="block text-sm font-medium mb-2">Bedrooms</label>
-              <div className="flex flex-wrap gap-2">
-                {['Studio', '1', '2', '3+'].map(bedroom => (
-                  <Badge 
-                    key={bedroom}
-                    variant={selectedBedrooms === bedroom ? "default" : "outline"} 
-                    className="cursor-pointer hover:bg-groww-soft-purple"
-                    onClick={() => handleBedroomSelect(bedroom)}
-                  >
-                    {bedroom}
-                  </Badge>
-                ))}
-              </div>
-            </div>
-
-            {/* Bathrooms filter */}
-            <div className="mb-6">
-              <label className="block text-sm font-medium mb-2">Bathrooms</label>
-              <div className="flex flex-wrap gap-2">
-                {['1', '1.5', '2', '2.5', '3+'].map(bathroom => (
-                  <Badge 
-                    key={bathroom}
-                    variant={selectedBathrooms === bathroom ? "default" : "outline"} 
-                    className="cursor-pointer hover:bg-groww-soft-purple"
-                    onClick={() => handleBathroomSelect(bathroom)}
-                  >
-                    {bathroom}
-                  </Badge>
-                ))}
-              </div>
-            </div>
-
-            {/* Neighborhoods filter */}
-            <div className="mb-6">
-              <label className="block text-sm font-medium mb-2">Neighborhoods</label>
-              <div className="flex flex-wrap gap-2">
-                {['Downtown', 'Midtown', 'West End', 'East Side'].map(neighborhood => (
-                  <Badge 
-                    key={neighborhood}
-                    variant={selectedNeighborhoods.includes(neighborhood) ? "default" : "outline"} 
-                    className="cursor-pointer hover:bg-groww-soft-purple"
-                    onClick={() => handleNeighborhoodToggle(neighborhood)}
-                  >
-                    {neighborhood}
-                    {selectedNeighborhoods.includes(neighborhood) && (
-                      <X 
-                        className="ml-1 h-3 w-3" 
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleNeighborhoodToggle(neighborhood);
-                        }}
-                      />
-                    )}
-                  </Badge>
-                ))}
-              </div>
-            </div>
-
-            {/* Amenities filter */}
-            <div className="mb-6">
-              <label className="block text-sm font-medium mb-2">Amenities</label>
-              <div className="space-y-2">
-                {['In-unit Washer/Dryer', 'Gym', 'Pool', 'Parking', 'Pet-Friendly', 'Balcony', 'Dishwasher'].map(amenity => (
-                  <div 
-                    key={amenity}
-                    className="flex items-center cursor-pointer"
-                    onClick={() => handleAmenityToggle(amenity)}
-                  >
-                    <div className={`${
-                      selectedAmenities.includes(amenity) 
-                        ? 'bg-groww-soft-purple' 
-                        : 'border'
-                    } rounded-full p-0.5 mr-2`}>
-                      <Check className={`h-3 w-3 ${
-                        selectedAmenities.includes(amenity) 
-                          ? 'text-groww-purple' 
-                          : 'text-transparent'
-                      }`} />
+            </SheetTrigger>
+            <SheetContent className="w-[300px] sm:w-[540px]">
+              <SheetHeader>
+                <SheetTitle>Filter Apartments</SheetTitle>
+                <SheetDescription>
+                  Narrow down your apartment search with these filters.
+                </SheetDescription>
+              </SheetHeader>
+              <div className="mt-6 flex flex-col gap-8">
+                {/* Price Range Filter */}
+                <div>
+                  <h3 className="text-lg font-medium mb-4">Price Range</h3>
+                  <div className="px-2">
+                    <Slider
+                      min={0}
+                      max={10000}
+                      step={100}
+                      value={localPriceRange}
+                      onValueChange={handlePriceRangeChange}
+                      onValueCommit={applyPriceRange}
+                      className="mb-6"
+                    />
+                    <div className="flex justify-between">
+                      <div className="text-sm">
+                        <div className="text-gray-500">Min</div>
+                        <div className="font-medium">{formatPrice(localPriceRange[0])}</div>
+                      </div>
+                      <div className="text-sm">
+                        <div className="text-gray-500">Max</div>
+                        <div className="font-medium">{formatPrice(localPriceRange[1])}</div>
+                      </div>
                     </div>
-                    <span className="text-sm">{amenity}</span>
                   </div>
-                ))}
+                </div>
+                
+                {/* Bedrooms Filter */}
+                <div>
+                  <h3 className="text-lg font-medium mb-4">Bedrooms</h3>
+                  <div className="grid grid-cols-5 gap-2">
+                    {['Any', '1', '2', '3', '4+'].map((value) => (
+                      <Button 
+                        key={value} 
+                        variant={bedroomFilter === (value === 'Any' ? '' : value) ? "default" : "outline"}
+                        onClick={() => onBedroomFilterChange(value === 'Any' ? '' : value)}
+                        className="w-full"
+                      >
+                        <Hotel className="h-4 w-4 mr-1" />
+                        {value}
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+                
+                {/* Bathrooms Filter */}
+                <div>
+                  <h3 className="text-lg font-medium mb-4">Bathrooms</h3>
+                  <div className="grid grid-cols-5 gap-2">
+                    {['Any', '1', '2', '3+'].map((value) => (
+                      <Button 
+                        key={value} 
+                        variant={bathroomFilter === (value === 'Any' ? '' : value) ? "default" : "outline"}
+                        onClick={() => onBathroomFilterChange(value === 'Any' ? '' : value)}
+                        className="w-full"
+                      >
+                        <Bath className="h-4 w-4 mr-1" />
+                        {value}
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+                
+                {/* Amenities Filter */}
+                <div>
+                  <h3 className="text-lg font-medium mb-4">Amenities</h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {amenitiesList.map((amenity) => (
+                      <div key={amenity} className="flex items-center space-x-2">
+                        <Checkbox 
+                          id={`amenity-${amenity}`}
+                          checked={amenityFilters.includes(amenity)}
+                          onCheckedChange={(checked) => handleCheckboxChange(amenity, checked === true)}
+                        />
+                        <Label htmlFor={`amenity-${amenity}`}>{amenity}</Label>
+                      </div>
+                    ))}
+                  </div>
+                </div>
               </div>
-            </div>
-
-            <Button 
-              className="w-full bg-groww-purple hover:bg-groww-purple-dark"
-              onClick={applyFilters}
-            >
-              Apply Filters
-            </Button>
-          </div>
-        </div>
-
-        {/* Results grid */}
-        <div className="lg:w-3/4">
-          {/* Sort controls */}
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 bg-white rounded-lg p-3 border border-gray-100">
-            <div className="flex items-center mb-3 sm:mb-0">
-              <SlidersHorizontal size={18} className="text-groww-purple mr-2" />
-              <span className="text-sm">Sorted by:</span>
-            </div>
-            <div className="w-full sm:w-48">
-              <Select 
-                value={sortOption} 
-                onValueChange={(value) => onSortChange && onSortChange(value)}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Sort by" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="bestMatch">Best Match</SelectItem>
-                  <SelectItem value="price-low">Price: Low to High</SelectItem>
-                  <SelectItem value="price-high">Price: High to Low</SelectItem>
-                  <SelectItem value="newest">Newest</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          {/* Empty state */}
-          {sortedApartments.length === 0 && (
-            <div className="text-center py-12 bg-white rounded-lg border border-gray-100">
-              <h3 className="text-lg font-medium text-gray-900">No apartments found</h3>
-              <p className="mt-2 text-gray-500">Try adjusting your filters to see more results.</p>
-              <Button 
-                variant="outline" 
-                className="mt-4"
-                onClick={resetFilters}
-              >
-                Clear Filters
-              </Button>
-            </div>
-          )}
-
-          {/* Apartment cards grid */}
-          <div ref={resultsRef} className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {sortedApartments.map((apartment) => (
-              <ApartmentCard key={apartment.id} apartment={apartment} />
-            ))}
-          </div>
+              <SheetFooter className="mt-8">
+                <Button variant="outline" onClick={onFilterReset}>
+                  <X className="h-4 w-4 mr-1" /> Reset Filters
+                </Button>
+                <SheetClose asChild>
+                  <Button>
+                    <Check className="h-4 w-4 mr-1" /> Apply Filters
+                  </Button>
+                </SheetClose>
+              </SheetFooter>
+            </SheetContent>
+          </Sheet>
         </div>
       </div>
+      
+      {/* Active filters display */}
+      {getFilterCount() > 0 && (
+        <div className="flex flex-wrap gap-2 mb-6">
+          {priceRange[0] > 0 || priceRange[1] < 10000 ? (
+            <Badge variant="outline" className="px-3 py-1">
+              {formatPrice(priceRange[0])} - {formatPrice(priceRange[1])}
+              <button 
+                onClick={() => onPriceRangeChange([0, 10000])} 
+                className="ml-2 hover:text-red-500"
+              >
+                <X className="h-3 w-3" />
+              </button>
+            </Badge>
+          ) : null}
+          
+          {bedroomFilter && (
+            <Badge variant="outline" className="px-3 py-1">
+              {bedroomFilter === '4+' ? '4+ Bedrooms' : `${bedroomFilter} Bedroom${bedroomFilter === '1' ? '' : 's'}`}
+              <button 
+                onClick={() => onBedroomFilterChange('')} 
+                className="ml-2 hover:text-red-500"
+              >
+                <X className="h-3 w-3" />
+              </button>
+            </Badge>
+          )}
+          
+          {bathroomFilter && (
+            <Badge variant="outline" className="px-3 py-1">
+              {bathroomFilter === '3+' ? '3+ Bathrooms' : `${bathroomFilter} Bathroom${bathroomFilter === '1' ? '' : 's'}`}
+              <button 
+                onClick={() => onBathroomFilterChange('')} 
+                className="ml-2 hover:text-red-500"
+              >
+                <X className="h-3 w-3" />
+              </button>
+            </Badge>
+          )}
+          
+          {amenityFilters.map(amenity => (
+            <Badge key={amenity} variant="outline" className="px-3 py-1">
+              {amenity}
+              <button 
+                onClick={() => onAmenityFilterChange(amenity, false)} 
+                className="ml-2 hover:text-red-500"
+              >
+                <X className="h-3 w-3" />
+              </button>
+            </Badge>
+          ))}
+          
+          {getFilterCount() > 1 && (
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={onFilterReset}
+              className="text-sm font-normal h-8"
+            >
+              Clear All
+            </Button>
+          )}
+        </div>
+      )}
+      
+      {/* Apartments grid */}
+      {filteredCount > 0 ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {scoredApartments.map(apartment => (
+            <ApartmentCard 
+              key={apartment.id} 
+              apartment={apartment} 
+            />
+          ))}
+        </div>
+      ) : (
+        <div className="text-center py-16">
+          <h2 className="text-2xl font-bold mb-4">No apartments match your filters</h2>
+          <p className="text-gray-600 mb-8">Try adjusting your filter criteria to see more results.</p>
+          <Button onClick={onFilterReset}>
+            Clear Filters
+          </Button>
+        </div>
+      )}
     </div>
   );
 };

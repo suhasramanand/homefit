@@ -11,10 +11,16 @@ import Favorites from '@/pages/Favorites';
 import About from '@/pages/About';
 import BrokerDashboard from '@/pages/BrokerDashboard';
 import BrokerListings from '@/pages/BrokerListings';
+import BrokerProfile from '@/pages/broker/BrokerProfile';
+import BrokerSettings from '@/pages/broker/BrokerSettings';
+import BrokerInquiries from '@/pages/broker/BrokerInquiries';
 import AddListing from '@/pages/AddListing';
 import AdminDashboard from '@/pages/AdminDashboard';
 import BrokerManagement from '@/pages/admin/BrokerManagement';
 import UserManagement from '@/pages/admin/UserManagement';
+import AdminListings from '@/pages/admin/AdminListings';
+import AdminProfile from '@/pages/admin/AdminProfile';
+import AdminSettings from '@/pages/admin/AdminSettings';
 import NotFound from '@/pages/NotFound';
 import PrivateRoute from '@/components/PrivateRoute';
 import { useEffect } from 'react';
@@ -68,6 +74,15 @@ function App() {
       <Route path="/broker/add-listing" element={
         <PrivateRoute element={<AddListing />} roles={['broker']} />
       } />
+      <Route path="/broker/profile" element={
+        <PrivateRoute element={<BrokerProfile />} roles={['broker']} />
+      } />
+      <Route path="/broker/settings" element={
+        <PrivateRoute element={<BrokerSettings />} roles={['broker']} />
+      } />
+      <Route path="/broker/inquiries" element={
+        <PrivateRoute element={<BrokerInquiries />} roles={['broker']} />
+      } />
       
       {/* Admin routes */}
       <Route path="/admin" element={
@@ -78,6 +93,15 @@ function App() {
       } />
       <Route path="/admin/users" element={
         <PrivateRoute element={<UserManagement />} roles={['admin']} />
+      } />
+      <Route path="/admin/listings" element={
+        <PrivateRoute element={<AdminListings />} roles={['admin']} />
+      } />
+      <Route path="/admin/profile" element={
+        <PrivateRoute element={<AdminProfile />} roles={['admin']} />
+      } />
+      <Route path="/admin/settings" element={
+        <PrivateRoute element={<AdminSettings />} roles={['admin']} />
       } />
       
       {/* Fallback routes */}
