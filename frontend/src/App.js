@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState } from "react";
 import {
   BrowserRouter as Router,
   Routes,
@@ -35,7 +35,7 @@ import BrokerLayout from "./pages/broker/BrokerLayout";
 import BrokerDashboard from "./pages/broker/BrokerDashboard";
 import BrokerListings from "./pages/broker/BrokerListings";
 import BrokerInquiries from "./pages/broker/BrokerInquiries";
-import BrokerTours from "./pages/broker/BrokerTours";
+import BrokerTours from "./pages/broker/BrokerTours"; 
 import BrokerProfile from "./pages/broker/BrokerProfile";
 import BrokerRegistration from "./pages/broker/BrokerRegistration";
 import BrokerSettings from "./pages/broker/BrokerSettings";
@@ -57,11 +57,12 @@ import UserRoute from "./routes/UserRoute";
 
 // Auth Session
 import { checkSession } from "./redux/sessionActions";
-import PropertyDetailsPage from "./pages/PropertyDetailsPage";
-import LandingPage from "./pages/LandingPage";
-import ApartmentMatches from "./pages/ApartmentPage";
-import ScrollAndFocusHandler from "./components/common/ScrollAndFocusHandler";
 import axios from "axios";
+import { updateUser } from "./redux/userSlice";
+
+// Maintenance Mode
+import { MaintenanceProvider, useMaintenanceMode } from "./components/maintenance/MaintenanceContext";
+import MaintenanceMode from "./components/maintenance/MaintenanceMode";
 
 const API_BASE_URL = process.env.REACT_APP_API_URL;
 // 👇 Separate component for route logic
@@ -71,17 +72,10 @@ function AppRoutes() {
   const [loading, setLoading] = useState(true);
   const user = useSelector((state) => state.user.user);
   const isAuthenticated = useSelector((state) => state.user.isAuthenticated);
-
+  
+  
   // Get maintenance mode status
-  const {
-    isInMaintenanceMode,
-    maintenanceMessage,
-    estimatedTime,
-    loading: maintenanceLoading,
-    fetchMaintenanceStatus,
-  } = useMaintenanceMode();
-
-  const mainRef = useRef(null); // 👈 Ref for the focus target after navbar
+  const { isInMaintenanceMode, maintenanceMessage, estimatedTime, loading: maintenanceLoading, fetchMaintenanceStatus } = useMaintenanceMode();
 
   const hideNavbar =
     ["/login", "/signup"].includes(location.pathname) ||
@@ -93,13 +87,17 @@ function AppRoutes() {
     location.pathname.startsWith("/broker/") ||
     location.pathname.startsWith("/admin/");
 
+  // Function to fetch and update broker-specific data
   const fetchBrokerData = async () => {
     try {
       if (user && user.type === "broker") {
         console.log("Fetching broker data for user:", user.email);
-        const response = await axios.get(`${API_BASE_URL}/api/broker/me`, {
-          withCredentials: true,
-        });
+        const response = await axios.get(
+          `${API_BASE_URL}/api/broker/me`,
+          {
+            withCredentials: true,
+          }
+        );
 
         if (response.data) {
           // Update the Redux store with broker-specific data
@@ -119,9 +117,9 @@ function AppRoutes() {
         await dispatch(checkSession());
 
         // If logged in as admin, refresh maintenance status
-        if (user && user.type === "admin") {
-          fetchMaintenanceStatus();
-        }
+      if (user && user.type === "admin") {
+        fetchMaintenanceStatus();
+      }
       } catch (error) {
         console.error("Session check failed:", error);
       } finally {
@@ -154,13 +152,16 @@ function AppRoutes() {
     }
   }, [user?.email, dispatch]); // Only run when the user's email changes (i.e., on login/logout)
 
+  // Set up a refresh interval for broker data
   useEffect(() => {
     let intervalId;
+
     if (user && user.type === "broker" && !user.isApproved) {
-      intervalId = setInterval(fetchBrokerData, 5 * 60 * 1000);
+      // If user is a broker and not approved, check status every 5 minutes
+      intervalId = setInterval(() => {
+        fetchBrokerData();
+      }, 5 * 60 * 1000); // 5 minutes
     }
-    return () => clearInterval(intervalId);
-  }, [user]);
 
     return () => {
       if (intervalId) clearInterval(intervalId);
@@ -184,37 +185,30 @@ function AppRoutes() {
   }
 
   // Create an array of paths that should be accessible during maintenance mode
-  const allowedPaths = ["/login", "/signup"];
+  const allowedPaths = [
+    "/login",
+    "/signup"
+  ];
 
   // Check if maintenance mode is active and user is not an admin
   // Also check if the current path is allowed during maintenance mode
-  if (
-    isInMaintenanceMode &&
-    (!user || user.type !== "admin") &&
-    !allowedPaths.includes(location.pathname)
-  ) {
-    return (
-      <MaintenanceMode
-        message={maintenanceMessage}
-        estimatedTime={estimatedTime}
-      />
-    );
+  if (isInMaintenanceMode && 
+      (!user || user.type !== "admin") && 
+      !allowedPaths.includes(location.pathname)) {
+    return <MaintenanceMode message={maintenanceMessage} estimatedTime={estimatedTime} />;
   }
 
   return (
     <>
-      <ScrollAndFocusHandler />
       {!hideNavbar && <Navbar />}
-
-      {/* 👇 Focus anchor for skip link */}
-      <div id="main-focus-anchor" tabIndex={-1} ref={mainRef} />
-
       <Routes>
-        {/* Public routes */}
+        {/* Public */}
         <Route path="/" element={<Home />} />
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
         <Route path="/broker/register" element={<BrokerRegistration />} />
+        <Route path="/map" element={<ApartmentMapPage />} /> {/* New map route */}
+
         {/* Admin Layout with nested routes */}
         <Route
           path="/admin"
@@ -230,6 +224,7 @@ function AppRoutes() {
           <Route path="listings" element={<AdminListings />} />
           <Route path="settings" element={<AdminSettings />} />
         </Route>
+
         {/* Broker Layout with nested routes */}
         <Route
           path="/broker"
@@ -243,13 +238,14 @@ function AppRoutes() {
           <Route path="listings" element={<BrokerListings />} />
           <Route path="listings/:id" element={<BrokerListingDetail />} />
           <Route path="inquiries" element={<BrokerInquiries />} />
-          <Route path="tours" element={<BrokerTours />} />{" "}
-          {/* Add broker tours page */}
+          <Route path="tours" element={<BrokerTours />} /> {/* Add broker tours page */}
           <Route path="add-listing" element={<AgentApartmentForm />} />
           <Route path="profile" element={<BrokerProfile />} />
           <Route path="settings" element={<BrokerSettings />} />
           <Route path="analytics" element={<BrokerAnalytics />} />
         </Route>
+
+        {/* Backward compatibility - redirects to the new location within broker layout */}
         <Route
           path="/list-apartment"
           element={
@@ -259,7 +255,8 @@ function AppRoutes() {
             </BrokerRoute>
           }
         />
-        {/* User routes */}
+
+        {/* User-only */}
         <Route
           path="/preferences"
           element={
@@ -283,8 +280,7 @@ function AppRoutes() {
               <UserTours />
             </UserRoute>
           }
-        />{" "}
-        {/* Add user tours page */}
+        /> {/* Add user tours page */}
         <Route
           path="/profile"
           element={
@@ -310,15 +306,12 @@ function AppRoutes() {
           }
         />
         <Route path="/matches/:prefId" element={<MatchResults />} />
-        {/* Misc */}
+
+        {/* Common */}
         <Route path="/about" element={<About />} />
         <Route path="/contact" element={<Contact />} />
-        <Route path="/landingPage" element={<LandingPage />} />
-        <Route path="/propertyDetails" element={<PropertyDetailsPage />} />
-        <Route path="/apartmentMatch" element={<ApartmentMatches />} />
         <Route path="/resource/:resourceType" element={<ResourcePage />} />
       </Routes>
-
       {!hideFooter && <Footer />}
     </>
   );
@@ -326,57 +319,19 @@ function AppRoutes() {
 
 // ✅ Main App component
 function App() {
-  const focusAnchorRef = useRef(null);
-
-  const handleSkipToContent = (e) => {
-    e.preventDefault();
-    const target = document.getElementById("main-focus-anchor");
-    if (target) {
-      target.focus();
-    }
-  };
-
   return (
-    <>
-      <a
-        href="#main-content"
-        className="skip-link"
-        onClick={handleSkipToContent}
-        style={{
-          position: "absolute",
-          left: "-10000px",
-          top: "auto",
-          width: "1px",
-          height: "1px",
-          overflow: "hidden",
-          zIndex: 1000,
-        }}
-        onFocus={(e) => {
-          e.target.style.left = "0";
-          e.target.style.width = "auto";
-          e.target.style.height = "auto";
-        }}
-        onBlur={(e) => {
-          e.target.style.left = "-10000px";
-          e.target.style.width = "1px";
-          e.target.style.height = "1px";
-        }}
-      >
-        Skip to main content
-      </a>
-      <Provider store={store}>
-        <ColorModeProvider>
-          <MaintenanceProvider>
-            <Router>
-              <Box display="flex" flexDirection="column" minHeight="100vh">
-                <CssBaseline />
-                <AppRoutes />
-              </Box>
-            </Router>
-          </MaintenanceProvider>
-        </ColorModeProvider>
-      </Provider>
-    </>
+    <Provider store={store}>
+      <ColorModeProvider>
+        <MaintenanceProvider>
+          <Router>
+            <Box display="flex" flexDirection="column" minHeight="100vh">
+              <CssBaseline />
+              <AppRoutes />
+            </Box>
+          </Router>
+        </MaintenanceProvider>
+      </ColorModeProvider>
+    </Provider>
   );
 }
 
