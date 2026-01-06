@@ -1,35 +1,35 @@
-# 🏠 HomeFit – Apartment Finder & Broker Portal
+# HomeFit – Apartment Finder & Broker Portal
 
 **HomeFit** is a full-stack web application that connects renters with apartment listings while offering an internal broker and admin management system. The platform supports listing management, broker registration and approval workflows, user preferences, and smart apartment matching.
 
 ---
 
-## 🚀 Features
+## Features
 
-### ✅ User-Facing
-- 👥 User Signup/Login
-- 📋 Preference-based apartment matching
-- 💾 Save and view favorite listings
-- 🧠 AI-assisted apartment match explanations (via Groq API)
-- 📞 Inquiry system to contact brokers
+### User-Facing
+- User Signup/Login
+- Preference-based apartment matching
+- Save and view favorite listings
+- AI-assisted apartment match explanations (via Groq API)
+- Inquiry system to contact brokers
 
-### 🧑‍💼 Broker Dashboard
-- 📝 Multi-step broker registration with license verification
-- 🔐 Pending approval system (admin approval required)
-- 🏢 Add, manage, and delete listings
-- 📩 View and respond to listing inquiries
-- 📊 View listing performance and analytics
-- 👤 Profile management and document upload
+### Broker Dashboard
+- Multi-step broker registration with license verification
+- Pending approval system (admin approval required)
+- Add, manage, and delete listings
+- View and respond to listing inquiries
+- View listing performance and analytics
+- Profile management and document upload
 
-### 👨‍💻 Admin Dashboard
-- 🔍 View/manage all brokers, users, and listings
-- ✅ Approve or reject broker registrations
-- 🧾 Download and view license documents
+### Admin Dashboard
+- View/manage all brokers, users, and listings
+- Approve or reject broker registrations
+- Download and view license documents
 - System settings 
 
 ---
 
-## 🧱 Tech Stack
+## Tech Stack
 
 | Frontend              | Backend              | Database       | Miscellaneous              |
 |----------------------|----------------------|----------------|----------------------------|
@@ -37,7 +37,7 @@
 
 ---
 
-## 🛠️ Installation
+## Installation
 
 ### 1. Clone the repository
 
@@ -96,7 +96,7 @@ To run both the backend and frontend simultaneously:
    ```
    This will start both the frontend and backend concurrently.
 
-### 🗂️ Project Structure
+### Project Structure
 ```
 /frontend
   └── components/
@@ -125,7 +125,7 @@ To run both the backend and frontend simultaneously:
   └── server.js
   ```
 
-### 📄 API Highlights
+### API Highlights
 ```
 /api/broker/register
 ```
@@ -144,12 +144,12 @@ Update profile (name, phone)
 ```
 CRUD operations on listings (broker-only)
 
-### 🔐 Authentication & Sessions
+### Authentication & Sessions
 1. Uses express-session with cookie-based authentication
 
 2. Role-based access control: admin, broker, user
 
-### 📦 Future Enhancements
+### Future Enhancements
 1. Email notifications for inquiries and approvals
 
 2. AI-enhanced search and personalized recommendations
@@ -158,7 +158,7 @@ CRUD operations on listings (broker-only)
 
 4. Mobile app version (React Native)
 
-## 👨‍👩‍👧‍👦 Contributors
+## Contributors
 
 | Name    | Contribution (%) | Area of Focus                                     |
 |---------|------------------|---------------------------------------------------|
@@ -170,7 +170,7 @@ CRUD operations on listings (broker-only)
 
 
 
-📸 Screenshots
+Screenshots
 
 
 
