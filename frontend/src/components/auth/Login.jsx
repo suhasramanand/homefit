@@ -149,7 +149,7 @@ const Login = () => {
   const fetchCompleteUserProfile = async () => {
     try {
       // This is the same API call that UserProfile uses to refresh data
-      const sessionRes = await axios.get('http://localhost:4000/api/user/session', {
+      const sessionRes = await axios.get('/api/user/session', {
         withCredentials: true
       });
       
@@ -172,8 +172,8 @@ const Login = () => {
     setError('');
     
     try {
-      // Regular login API call
-      const res = await axios.post('http://localhost:4000/api/user/login', 
+      // Regular login API call (works with both real and mock API)
+      const res = await axios.post('/api/user/login', 
         { email, password }, 
         { withCredentials: true }
       );
