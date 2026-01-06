@@ -1,7 +1,8 @@
 import React from "react";
-import { Modal, Box, Typography, Fade, Backdrop } from "@mui/material";
+import { Modal, Box, Typography, Fade, Backdrop, useTheme } from "@mui/material";
 
 const SuccessModal = ({ open, message, subtext }) => {
+  const theme = useTheme();
   return (
     <Modal
       open={open}
@@ -16,7 +17,7 @@ const SuccessModal = ({ open, message, subtext }) => {
             top: "45%",
             left: "50%",
             transform: "translate(-50%, -50%)",
-            bgcolor: "#fff",
+            bgcolor: theme.palette.background.paper,
             borderRadius: 3,
             boxShadow: 24,
             p: 4,

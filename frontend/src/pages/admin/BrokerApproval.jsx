@@ -245,7 +245,7 @@ const AdminBrokerApproval = () => {
         sx={{
           mb: 4,
           borderRadius: 2,
-          backgroundColor: isDarkMode ? 'rgba(255, 255, 255, 0.05)' : '#fff',
+          backgroundColor: theme.palette.background.paper,
           border: isDarkMode ? '1px solid rgba(255, 255, 255, 0.1)' : 'none',
         }}
       >
@@ -294,7 +294,7 @@ const AdminBrokerApproval = () => {
             p: 4,
             borderRadius: 2,
             textAlign: 'center',
-            backgroundColor: isDarkMode ? 'rgba(255, 255, 255, 0.05)' : '#fff',
+            backgroundColor: theme.palette.background.paper,
             border: isDarkMode ? '1px solid rgba(255, 255, 255, 0.1)' : 'none',
           }}
         >
@@ -320,7 +320,7 @@ const AdminBrokerApproval = () => {
           elevation={2}
           sx={{
             borderRadius: 2,
-            backgroundColor: isDarkMode ? 'rgba(255, 255, 255, 0.05)' : '#fff',
+            backgroundColor: theme.palette.background.paper,
             border: isDarkMode ? '1px solid rgba(255, 255, 255, 0.1)' : 'none',
             overflow: 'hidden',
           }}
@@ -452,7 +452,7 @@ const AdminBrokerApproval = () => {
           elevation: 3,
           sx: {
             borderRadius: 2,
-            backgroundColor: isDarkMode ? theme.palette.background.paper : '#fff',
+            backgroundColor: theme.palette.background.paper,
             border: isDarkMode ? '1px solid rgba(255, 255, 255, 0.1)' : 'none',
           },
         }}

@@ -20,6 +20,7 @@
   },
   "homepage": "https://github.com/suhasreddy-northeastern/WEB_DESIGN_AND_UX_PROJECT_GROUP_4#readme",
   "devDependencies": {
+    "axios": "^1.13.2",
     "concurrently": "^9.1.2"
   },
   "dependencies": {

@@ -1,4 +1,5 @@
 const SystemSettings = require('../models/SystemSettings');
+const logger = require('../utils/logger');
 
 // In-memory cache for faster access to frequently accessed settings
 let maintenanceStatus = {
@@ -39,10 +40,10 @@ exports.initSystemSettings = async () => {
       lastUpdated: settings.lastUpdated
     };
     
-    console.log('System settings initialized');
+    logger.info('System settings initialized');
     return true;
   } catch (error) {
-    console.error('Failed to initialize system settings:', error);
+    logger.error('Failed to initialize system settings:', error);
     return false;
   }
 };
@@ -72,7 +73,7 @@ exports.getMaintenanceStatus = async (req, res) => {
     // Send current status
     res.status(200).json(maintenanceStatus);
   } catch (error) {
-    console.error('Error getting maintenance status:', error);
+    logger.error('Error getting maintenance status:', error);
     res.status(500).json({ error: 'Failed to get maintenance status' });
   }
 };
@@ -84,7 +85,7 @@ exports.setMaintenanceMode = async (req, res) => {
   try {
     const { enabled, message, estimatedTime } = req.body;
     
-    console.log(`Setting maintenance mode: enabled=${enabled}, message=${message}`);
+    logger.info(`Setting maintenance mode: enabled=${enabled}, message=${message}`);
     
     // Verify user is admin
     if (req.session.user?.type !== 'admin') {
@@ -105,7 +106,7 @@ exports.setMaintenanceMode = async (req, res) => {
       { upsert: true, new: true }
     );
     
-    console.log("Updated settings in database:", updatedSettings);
+    logger.debug("Updated settings in database:", updatedSettings.value);
     
     // Update in-memory cache
     maintenanceStatus = {
@@ -115,8 +116,9 @@ exports.setMaintenanceMode = async (req, res) => {
       lastUpdated: new Date()
     };
     
-    console.log("Updated in-memory cache:", maintenanceStatus);
+    logger.debug("Updated in-memory cache:", maintenanceStatus);
     
+    logger.info('Maintenance mode updated:', { enabled, message });
     res.status(200).json({
       success: true,
       isInMaintenanceMode: enabled,
@@ -124,7 +126,7 @@ exports.setMaintenanceMode = async (req, res) => {
       estimatedTime: maintenanceStatus.estimatedTime
     });
   } catch (error) {
-    console.error('Error setting maintenance mode:', error);
+    logger.error('Error setting maintenance mode:', error);
     res.status(500).json({ error: 'Failed to update maintenance mode' });
   }
 };

@@ -9,8 +9,14 @@ import axios from 'axios';
 import { registerServiceWorker } from "./RegisterWorker";
 
 
-axios.defaults.withCredentials = true;
-axios.defaults.baseURL = 'http://localhost:4000';
+// Only set default axios config if not using mock API
+const USE_MOCK = process.env.REACT_APP_USE_MOCK === 'true' || 
+                 (process.env.NODE_ENV === 'production' && !process.env.REACT_APP_API_URL);
+
+if (!USE_MOCK) {
+  axios.defaults.withCredentials = true;
+  axios.defaults.baseURL = process.env.REACT_APP_API_URL || 'http://localhost:4000';
+}
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
   <React.StrictMode>
@@ -20,8 +26,8 @@ root.render(
   </React.StrictMode>
 );
 
-// Register service worker
-registerServiceWorker();
+// Service worker registration disabled - uncomment if needed
+// registerServiceWorker();
 
 // If you want to start measuring performance in your app, pass a function
 // to log results (for example: reportWebVitals(console.log))

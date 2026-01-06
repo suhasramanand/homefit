@@ -35,6 +35,11 @@ export const checkSession = () => async (dispatch) => {
       }
     }
   } catch (err) {
-    console.log('No active session.');
+    // Silently handle 401 - session expired or not logged in
+    // This is expected behavior, no need to log or show errors
+    if (err.response?.status !== 401) {
+      // Only log non-401 errors
+      console.error('Session check error:', err);
+    }
   }
 };

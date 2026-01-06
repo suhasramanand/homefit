@@ -66,12 +66,6 @@ const userSchema = new mongoose.Schema({
     accountAlerts: { type: Boolean, default: true }
   },
 
-  // User-specific fields
-  savedApartments: [{
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "Apartment",
-  }],
-
 });
 
 // Hash password

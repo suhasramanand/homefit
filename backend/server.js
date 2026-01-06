@@ -29,8 +29,12 @@ app.use(cors({
 }));
 
 // ✅ Body parsing middleware
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(express.json({ limit: '10mb' })); // Limit request body size
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
+// ✅ Input sanitization middleware (apply globally)
+const sanitizeInput = require('./src/middleware/sanitizeInput');
+app.use(sanitizeInput);
 
 // ✅ Session middleware using MongoDB
 app.use(session({
@@ -56,9 +60,11 @@ require('./src/config/db');
 (async () => {
   try {
     await systemController.initSystemSettings();
-    console.log('System settings initialized successfully');
+    const logger = require('./src/utils/logger');
+    logger.info('System settings initialized successfully');
   } catch (err) {
-    console.error('Failed to initialize system settings:', err);
+    const logger = require('./src/utils/logger');
+    logger.error('Failed to initialize system settings:', err);
   }
 })();
 
@@ -109,7 +115,8 @@ app.use(async (req, res, next) => {
     // Continue if not in maintenance mode
     next();
   } catch (err) {
-    console.error('Error checking maintenance mode:', err);
+    const logger = require('./src/utils/logger');
+    logger.error('Error checking maintenance mode:', err);
     // Continue in case of errors with the settings check
     next();
   }
@@ -124,6 +131,22 @@ if (!fs.existsSync(uploadsDir)) {
 }
 app.use('/uploads', express.static(path.join(__dirname, 'src/uploads')));
 
+// Backward compatibility: serve old /images/ paths from /uploads/ if file exists there
+app.get('/images/:filename', (req, res, next) => {
+  const filename = req.params.filename;
+  const uploadsPath = path.join(__dirname, 'src/uploads', filename);
+  
+  // Check if file exists in uploads directory (where files are actually stored)
+  // Many old profile images were saved with /images/ path but stored in uploads/
+  if (fs.existsSync(uploadsPath)) {
+    // File exists in uploads, serve it directly from there
+    return res.sendFile(uploadsPath);
+  }
+  
+  // Otherwise, let express.static try the images directory
+  next();
+});
+
 // Routes
 app.use('/api/user', userRoutes);
 app.use('/api/apartments', apartmentRoutes);
@@ -137,9 +160,43 @@ app.use('/api/admin', systemRoutes);
 // Swagger docs
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 
+// Global error handler - must be last middleware
+app.use((err, req, res, next) => {
+  const logger = require('./src/utils/logger');
+  
+  // Log the error
+  logger.error('Unhandled error:', {
+    message: err.message,
+    stack: err.stack,
+    url: req.url,
+    method: req.method,
+    body: req.body,
+    params: req.params,
+    query: req.query
+  });
+
+  // Don't leak error details in production
+  const isDevelopment = process.env.NODE_ENV === 'development';
+  
+  res.status(err.status || 500).json({
+    error: err.message || 'Internal Server Error',
+    ...(isDevelopment && { stack: err.stack }),
+    ...(isDevelopment && { details: err })
+  });
+});
+
+// 404 handler
+app.use((req, res) => {
+  res.status(404).json({
+    error: 'Not Found',
+    message: `Route ${req.method} ${req.path} not found`
+  });
+});
+
 // Start server
 app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT} in ${process.env.NODE_ENV} mode`);
+  const logger = require('./src/utils/logger');
+  logger.info(`Server running on port ${PORT} in ${process.env.NODE_ENV || 'development'} mode`);
 });
 
 module.exports = app;

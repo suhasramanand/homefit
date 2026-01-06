@@ -1,0 +1,169 @@
+/**
+ * Password Settings Component
+ * Form for changing broker password
+ */
+
+import React from 'react';
+import {
+  Paper,
+  Typography,
+  TextField,
+  Button,
+  Grid,
+  Divider,
+  Alert,
+  InputAdornment,
+  IconButton,
+  CircularProgress,
+  Box,
+  useTheme,
+} from '@mui/material';
+import Visibility from '@mui/icons-material/Visibility';
+import VisibilityOff from '@mui/icons-material/VisibilityOff';
+import SaveIcon from '@mui/icons-material/Save';
+
+const PasswordSettings = ({
+  passwordData,
+  errors,
+  loading,
+  primaryColor,
+  isDarkMode,
+  showCurrentPassword,
+  showNewPassword,
+  showConfirmPassword,
+  onPasswordChange,
+  onToggleCurrentPassword,
+  onToggleNewPassword,
+  onToggleConfirmPassword,
+  onSubmit,
+}) => {
+  const theme = useTheme();
+
+  return (
+    <Paper
+      elevation={1}
+      sx={{
+        p: 3,
+        borderRadius: 2,
+        backgroundColor: theme.palette.background.paper,
+        border: isDarkMode ? '1px solid rgba(255, 255, 255, 0.1)' : 'none',
+        maxWidth: 600,
+        mx: 'auto',
+      }}
+    >
+      <Typography variant="h6" gutterBottom>
+        Change Password
+      </Typography>
+      <Divider sx={{ mb: 3 }} />
+      
+      <Alert severity="info" sx={{ mb: 3 }}>
+        Your password should be at least 8 characters and include a mix of letters, numbers, and symbols for best security.
+      </Alert>
+      
+      <Box component="form" onSubmit={onSubmit}>
+        <Grid container spacing={3}>
+          <Grid item xs={12}>
+            <TextField
+              label="Current Password"
+              name="currentPassword"
+              type={showCurrentPassword ? 'text' : 'password'}
+              value={passwordData.currentPassword}
+              onChange={onPasswordChange}
+              fullWidth
+              required
+              error={!!errors.currentPassword}
+              helperText={errors.currentPassword}
+              InputProps={{
+                endAdornment: (
+                  <InputAdornment position="end">
+                    <IconButton
+                      onClick={onToggleCurrentPassword}
+                      edge="end"
+                    >
+                      {showCurrentPassword ? <VisibilityOff /> : <Visibility />}
+                    </IconButton>
+                  </InputAdornment>
+                ),
+              }}
+            />
+          </Grid>
+          
+          <Grid item xs={12}>
+            <TextField
+              label="New Password"
+              name="newPassword"
+              type={showNewPassword ? 'text' : 'password'}
+              value={passwordData.newPassword}
+              onChange={onPasswordChange}
+              fullWidth
+              required
+              error={!!errors.newPassword}
+              helperText={errors.newPassword}
+              InputProps={{
+                endAdornment: (
+                  <InputAdornment position="end">
+                    <IconButton
+                      onClick={onToggleNewPassword}
+                      edge="end"
+                    >
+                      {showNewPassword ? <VisibilityOff /> : <Visibility />}
+                    </IconButton>
+                  </InputAdornment>
+                ),
+              }}
+            />
+          </Grid>
+          
+          <Grid item xs={12}>
+            <TextField
+              label="Confirm New Password"
+              name="confirmPassword"
+              type={showConfirmPassword ? 'text' : 'password'}
+              value={passwordData.confirmPassword}
+              onChange={onPasswordChange}
+              fullWidth
+              required
+              error={!!errors.confirmPassword}
+              helperText={errors.confirmPassword}
+              InputProps={{
+                endAdornment: (
+                  <InputAdornment position="end">
+                    <IconButton
+                      onClick={onToggleConfirmPassword}
+                      edge="end"
+                    >
+                      {showConfirmPassword ? <VisibilityOff /> : <Visibility />}
+                    </IconButton>
+                  </InputAdornment>
+                ),
+              }}
+            />
+          </Grid>
+        </Grid>
+        
+        <Box sx={{ mt: 4, display: 'flex', justifyContent: 'flex-end' }}>
+          <Button
+            type="submit"
+            variant="contained"
+            disabled={loading}
+            startIcon={loading ? <CircularProgress size={20} /> : <SaveIcon />}
+            sx={{
+              borderRadius: 2,
+              px: 3,
+              py: 1.2,
+              bgcolor: primaryColor,
+              '&:hover': {
+                bgcolor: theme.palette.primary.dark,
+              },
+            }}
+          >
+            {loading ? 'Updating...' : 'Update Password'}
+          </Button>
+        </Box>
+      </Box>
+    </Paper>
+  );
+};
+
+export default PasswordSettings;
+

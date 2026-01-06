@@ -2,6 +2,9 @@
 const Tour = require('../models/Tour');
 const Apartment = require('../models/Apartment');
 const User = require('../models/User');
+const logger = require('../utils/logger');
+const validator = require('../utils/validators');
+const constants = require('../utils/constants');
 
 /**
  * Schedule a tour request
@@ -21,10 +24,40 @@ exports.scheduleTour = async (req, res) => {
       return res.status(401).json({ error: 'User not authenticated' });
     }
 
+    // Validate apartment ID format
+    if (!validator.isValidObjectId(apartmentId)) {
+      return res.status(400).json({ error: 'Invalid apartment ID format' });
+    }
+
+    // Validate date format
+    if (!validator.isValidDate(tourDate)) {
+      return res.status(400).json({ error: 'Invalid date format. Use YYYY-MM-DD' });
+    }
+
+    // Validate time format
+    if (!validator.isValidTime(tourTime)) {
+      return res.status(400).json({ error: 'Invalid time format. Use HH:MM' });
+    }
+
+    // Validate phone number if provided
+    if (contactNumber && !validator.isValidPhone(contactNumber)) {
+      return res.status(400).json({ error: 'Invalid phone number format' });
+    }
+
+    // Validate name
+    if (!validator.isValidFullName(name)) {
+      return res.status(400).json({ error: 'Invalid name format' });
+    }
+
     // Get the apartment to verify it exists and get broker info
     const apartment = await Apartment.findById(apartmentId);
     if (!apartment) {
       return res.status(404).json({ error: 'Apartment not found' });
+    }
+
+    // Check if apartment is active
+    if (!apartment.isActive) {
+      return res.status(400).json({ error: 'This apartment listing is no longer active' });
     }
 
     // Get broker email
@@ -39,23 +72,33 @@ exports.scheduleTour = async (req, res) => {
       brokerEmail,
       apartmentId,
       tourDate,
-      tourTime,
-      name,
-      contactNumber,
-      message: message || `Request to tour ${apartment.bedrooms} BHK in ${apartment.neighborhood}`,
-      status: 'pending'
+      tourDate: validator.sanitizeString(tourDate),
+      tourTime: validator.sanitizeString(tourTime),
+      name: validator.sanitizeString(name),
+      contactNumber: validator.sanitizeString(contactNumber),
+      message: message ? validator.sanitizeString(message).substring(0, 500) : `Request to tour ${apartment.bedrooms} BHK in ${apartment.neighborhood}`,
+      status: constants.TOUR_STATUS.PENDING
     });
 
     await tour.save();
 
     // Could add notification logic here (email, push notification, etc.)
 
+    logger.info('Tour scheduled:', { tourId: tour._id, apartmentId, userEmail });
     res.status(201).json({ 
       message: 'Tour request submitted successfully',
       tourId: tour._id
     });
   } catch (err) {
-    console.error('Error scheduling tour:', err);
+    logger.error('Error scheduling tour:', err);
+    
+    if (err.name === 'ValidationError') {
+      return res.status(400).json({ 
+        error: "Validation error", 
+        details: Object.values(err.errors).map(e => e.message)
+      });
+    }
+    
     res.status(500).json({ error: 'Server error' });
   }
 };
@@ -95,7 +138,7 @@ exports.getUserTours = async (req, res) => {
 
     res.status(200).json({ tours: formattedTours });
   } catch (err) {
-    console.error('Error fetching user tours:', err);
+    logger.error('Error fetching user tours:', err);
     res.status(500).json({ error: 'Server error' });
   }
 };
@@ -165,7 +208,7 @@ exports.getBrokerTours = async (req, res) => {
 
     res.status(200).json({ tours: formattedTours });
   } catch (err) {
-    console.error('Error fetching broker tours:', err);
+    logger.error('Error fetching broker tours:', err);
     res.status(500).json({ error: 'Server error' });
   }
 };
@@ -223,12 +266,18 @@ exports.updateTourStatus = async (req, res) => {
 
     // Could add notification logic here (email to user, etc.)
 
+    logger.info('Tour status updated:', { tourId, status, brokerEmail });
     res.status(200).json({ 
       message: 'Tour status updated successfully',
       tour: updatedTour
     });
   } catch (err) {
-    console.error('Error updating tour status:', err);
+    logger.error('Error updating tour status:', err);
+    
+    if (err.name === 'CastError') {
+      return res.status(400).json({ error: 'Invalid tour ID format' });
+    }
+    
     res.status(500).json({ error: 'Server error' });
   }
 };
@@ -246,6 +295,11 @@ exports.cancelTour = async (req, res) => {
       return res.status(401).json({ error: 'User not authenticated' });
     }
 
+    // Validate tour ID format
+    if (!validator.isValidObjectId(tourId)) {
+      return res.status(400).json({ error: 'Invalid tour ID format' });
+    }
+
     // Find the tour
     const tour = await Tour.findById(tourId);
     if (!tour) {
@@ -257,14 +311,25 @@ exports.cancelTour = async (req, res) => {
       return res.status(403).json({ error: 'Not authorized to cancel this tour' });
     }
 
+    // Check if tour is already canceled
+    if (tour.status === constants.TOUR_STATUS.CANCELED) {
+      return res.status(400).json({ error: 'Tour is already canceled' });
+    }
+
     // Update tour status to canceled
-    tour.status = 'canceled';
+    tour.status = constants.TOUR_STATUS.CANCELED;
     tour.userCanceled = true;
     await tour.save();
 
+    logger.info('Tour canceled:', { tourId, userEmail });
     res.status(200).json({ message: 'Tour canceled successfully' });
   } catch (err) {
-    console.error('Error canceling tour:', err);
+    logger.error('Error canceling tour:', err);
+    
+    if (err.name === 'CastError') {
+      return res.status(400).json({ error: 'Invalid tour ID format' });
+    }
+    
     res.status(500).json({ error: 'Server error' });
   }
 };

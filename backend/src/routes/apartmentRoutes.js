@@ -16,22 +16,23 @@ const {
 } = require('../controllers/apartmentController');
 
 const checkApprovedBroker = require('../middleware/checkApprovedBroker');
+const { validateApartment, validateObjectId } = require('../middleware/validateRequest');
 
 // ------------------------------------------------------------
 // 🏠 APARTMENT LISTINGS
 // ------------------------------------------------------------
 
 // ✅ Create apartment (only approved brokers)
-router.post('/', checkAuth('broker'), checkApprovedBroker, createApartment);
+router.post('/', checkAuth('broker'), checkApprovedBroker, validateApartment, createApartment);
 
 // ✅ Update apartment (only approved brokers)
-router.put('/:id', checkAuth('broker'), checkApprovedBroker, updateApartment);
+router.put('/:id', checkAuth('broker'), checkApprovedBroker, validateObjectId('id'), validateApartment, updateApartment);
 
 // ✅ Get all apartments (public)
 router.get('/', getAllApartments);
 
 // ✅ Get a specific apartment by ID (public)
-router.get('/detail/:id', getApartmentById);
+router.get('/detail/:id', validateObjectId('id'), getApartmentById);
 
 // ✅ Get apartments near location (public)
 router.get('/nearby', getNearbyApartments);

@@ -1,45 +1,43 @@
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
+const logger = require('../utils/logger');
+const constants = require('../utils/constants');
 
-// Configure storage with better debugging
+// Configure storage for apartment images
 const storage = multer.diskStorage({
   destination: function(req, file, cb) {
-    // Make sure this path matches what your server.js is configured to serve
     const uploadDir = path.join(__dirname, '../uploads');
-    console.log("Upload destination directory:", uploadDir);
     
     // Ensure the directory exists
     if (!fs.existsSync(uploadDir)) {
-      console.log("Creating uploads directory:", uploadDir);
       fs.mkdirSync(uploadDir, { recursive: true });
+      logger.info('Created uploads directory:', uploadDir);
     }
     
-    // Log file info
-    console.log("Receiving file:", {
-      originalname: file.originalname,
-      mimetype: file.mimetype,
-      size: file.size
-    });
-    
+    logger.debug('Upload destination:', uploadDir);
     cb(null, uploadDir);
   },
   filename: function(req, file, cb) {
-    // Create a consistent filename format
-    const ext = path.extname(file.originalname);
+    const ext = path.extname(file.originalname).toLowerCase();
     const filename = `apt-${Date.now()}-${Math.round(Math.random() * 1E9)}${ext}`;
-    console.log("Generated filename:", filename);
+    logger.debug('Generated filename:', filename);
     cb(null, filename);
   }
 });
 
 // Set up file filter for images
 const fileFilter = (req, file, cb) => {
-  // Accept only image file types
+  // Validate mimetype exists and is an image
+  if (!file || !file.mimetype) {
+    logger.warn('File upload missing mimetype');
+    return cb(new Error('Invalid file type'), false);
+  }
+  
   if (file.mimetype.startsWith('image/')) {
     cb(null, true);
   } else {
-    console.log("Rejected file:", file.originalname, file.mimetype);
+    logger.warn('Rejected file:', file.originalname, file.mimetype);
     cb(new Error('Only image files are allowed!'), false);
   }
 };
@@ -49,24 +47,36 @@ const upload = multer({
   storage: storage,
   fileFilter: fileFilter,
   limits: {
-    fileSize: 5 * 1024 * 1024 // 5MB limit
+    fileSize: constants.FILE_UPLOAD.MAX_FILE_SIZE
   }
 });
 
-// Add error handling middleware
+// Error handling middleware for upload errors
 const handleUploadErrors = (err, req, res, next) => {
   if (err instanceof multer.MulterError) {
-    // A Multer error occurred
-    console.error("Multer error:", err.message);
-    return res.status(400).json({ 
-      message: `Upload error: ${err.message}`,
+    logger.error('Multer error:', err.message, err.code);
+    
+    // Handle specific multer error codes
+    let statusCode = 400;
+    let message = err.message;
+    
+    if (err.code === 'LIMIT_FILE_SIZE') {
+      const maxSizeMB = constants.FILE_UPLOAD.MAX_FILE_SIZE / (1024 * 1024);
+      message = `File size exceeds the maximum limit of ${maxSizeMB}MB`;
+    } else if (err.code === 'LIMIT_FILE_COUNT') {
+      message = 'Too many files uploaded';
+    } else if (err.code === 'LIMIT_UNEXPECTED_FILE') {
+      message = 'Unexpected file field';
+    }
+    
+    return res.status(statusCode).json({ 
+      error: message,
       code: err.code
     });
   } else if (err) {
-    // An unknown error occurred
-    console.error("Unknown upload error:", err.message);
-    return res.status(500).json({ 
-      message: `Upload failed: ${err.message}`
+    logger.error('Upload error:', err.message);
+    return res.status(400).json({ 
+      error: err.message || 'Upload failed'
     });
   }
   

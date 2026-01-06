@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Avatar,
@@ -20,6 +20,7 @@ import PersonIcon from "@mui/icons-material/Person";
 import EmailIcon from "@mui/icons-material/Email";
 import HouseIcon from "@mui/icons-material/House";
 import CloudUploadIcon from "@mui/icons-material/CloudUpload";
+import CameraAltIcon from "@mui/icons-material/CameraAlt";
 import DeleteIcon from "@mui/icons-material/Delete";
 
 const ProfileSidebar = ({
@@ -34,6 +35,11 @@ const ProfileSidebar = ({
   const navigate = useNavigate();
   const isDarkMode = theme.palette.mode === "dark";
   const primaryColor = theme.palette.primary.main;
+  const fileInputRef = useRef(null);
+
+  const handleAvatarClick = () => {
+    fileInputRef.current?.click();
+  };
 
   return (
     <>
@@ -57,21 +63,64 @@ const ProfileSidebar = ({
             p: 3,
           }}
         >
-          <Avatar
-            key={`profile-avatar-${previewImage ? 'preview' : (user?.imagePath || 'default')}`}
-            src={previewImage || (user?.imagePath ? `${user.imagePath}?t=${Date.now()}` : null)}
-            alt={profileData.fullName}
+          <Box
             sx={{
-              width: 120,
-              height: 120,
+              position: "relative",
               mb: 2,
-              bgcolor: primaryColor,
+              cursor: "pointer",
+              "&:hover .avatar-overlay": {
+                opacity: 1,
+              },
             }}
+            onClick={handleAvatarClick}
           >
-            {profileData.fullName
-              ? profileData.fullName.charAt(0).toUpperCase()
-              : "U"}
-          </Avatar>
+            <Avatar
+              key={`profile-avatar-${previewImage ? 'preview' : (user?.imagePath || 'default')}`}
+              src={previewImage || (user?.imagePath ? (user.imagePath.startsWith('http') ? `${user.imagePath}?t=${Date.now()}` : `http://localhost:4000${user.imagePath}?t=${Date.now()}`) : null)}
+              alt={profileData.fullName}
+              sx={{
+                width: 120,
+                height: 120,
+                bgcolor: primaryColor,
+              }}
+            >
+              {profileData.fullName
+                ? profileData.fullName.charAt(0).toUpperCase()
+                : "U"}
+            </Avatar>
+            <Box
+              className="avatar-overlay"
+              sx={{
+                position: "absolute",
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                borderRadius: "50%",
+                bgcolor: "rgba(0, 0, 0, 0.5)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                opacity: 0,
+                transition: "opacity 0.3s ease",
+                pointerEvents: "none",
+              }}
+            >
+              <CameraAltIcon
+                sx={{
+                  color: theme.palette.primary.contrastText,
+                  fontSize: 32,
+                }}
+              />
+            </Box>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              hidden
+              onChange={handleImageChange}
+            />
+          </Box>
 
           <Typography
             variant="h6"
@@ -159,20 +208,13 @@ const ProfileSidebar = ({
             </Typography>
           </Box>
 
-          <Button
-            variant="outlined"
-            component="label"
-            startIcon={<CloudUploadIcon />}
-            sx={{ mt: 2 }}
+          <Typography
+            variant="caption"
+            color="text.secondary"
+            sx={{ mt: 1, mb: 2, textAlign: "center", fontStyle: "italic" }}
           >
-            Change Photo
-            <input
-              type="file"
-              accept="image/*"
-              hidden
-              onChange={handleImageChange}
-            />
-          </Button>
+            Click on photo to change
+          </Typography>
         </CardContent>
       </Card>
 

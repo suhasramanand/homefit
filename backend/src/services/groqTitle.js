@@ -1,9 +1,21 @@
 const axios = require("axios");
 require("dotenv").config();
+const logger = require('../utils/logger');
 
 const GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions";
 
 exports.generateListingTitle = async (apartment) => {
+  // Validate input
+  if (!apartment) {
+    logger.warn('generateListingTitle called without apartment data');
+    return "Could not generate title.";
+  }
+
+  if (!process.env.GROQ_API_KEY2) {
+    logger.warn('GROQ_API_KEY2 not configured');
+    return "Could not generate title.";
+  }
+
   const prompt = `
 You are a creative assistant helping brokers write attractive apartment listing titles.
 
@@ -37,6 +49,7 @@ ${JSON.stringify(apartment, null, 2)}
             content: prompt,
           },
         ],
+        timeout: 10000, // 10 second timeout
       },
       {
         headers: {
@@ -46,9 +59,24 @@ ${JSON.stringify(apartment, null, 2)}
       }
     );
 
+    if (!response.data?.choices?.[0]?.message?.content) {
+      logger.warn('Groq API returned invalid response format');
+      return "Could not generate title.";
+    }
+
     return response.data.choices[0].message.content.trim();
   } catch (error) {
-    console.error("Groq API error (title):", error.response?.data || error.message);
+    // Handle different error types
+    if (error.code === 'ECONNABORTED') {
+      logger.warn('Groq API timeout');
+    } else if (error.response) {
+      logger.error("Groq API error:", {
+        status: error.response.status,
+        data: error.response.data
+      });
+    } else {
+      logger.error("Groq API error:", error.message);
+    }
     return "Could not generate title.";
   }
 };

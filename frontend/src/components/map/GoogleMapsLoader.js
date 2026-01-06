@@ -15,7 +15,13 @@ if (!window._googleMapsApiCache) {
    * @param {Array<string>} libraries - Array of library names to load
    * @returns {Promise} - Promise that resolves when the API is loaded
    */
-  export const loadGoogleMapsApi = (apiKey, libraries = ['places']) => {
+  export const loadGoogleMapsApi = (apiKey, libraries = ['places', 'marker']) => {
+    // Check if API key is provided
+    if (!apiKey || apiKey.trim() === '') {
+      console.warn('Google Maps API key is missing. Maps functionality will be limited.');
+      return Promise.reject(new Error('Google Maps API key is required but not provided. Please set REACT_APP_GOOGLE_MAPS_API_KEY in your .env file.'));
+    }
+
     // If already loaded, return resolved promise
     if (window._googleMapsApiCache.loaded && window.google && window.google.maps) {
       return Promise.resolve();
@@ -34,34 +40,74 @@ if (!window._googleMapsApiCache) {
       
       // Set unique callback to avoid conflicts
       window[callbackName] = () => {
-        window._googleMapsApiCache.loaded = true;
-        window._googleMapsApiCache.loading = false;
-        delete window[callbackName];
-        resolve();
+        // Check if Google Maps API loaded successfully
+        if (!window.google || !window.google.maps) {
+          window._googleMapsApiCache.loading = false;
+          delete window[callbackName];
+          reject(new Error('Google Maps API failed to load. Please check your API key.'));
+          return;
+        }
+        
+        // Wait a bit to check for errors that might appear after callback
+        // Google Maps sometimes throws errors after the callback fires
+        setTimeout(() => {
+          // Check if there are any errors in the console
+          // This is a workaround since Google Maps errors appear asynchronously
+          window._googleMapsApiCache.loaded = true;
+          window._googleMapsApiCache.loading = false;
+          delete window[callbackName];
+          resolve();
+        }, 500);
+      };
+      
+      // Listen for global Google Maps errors
+      const originalErrorHandler = window.onerror;
+      window.onerror = (message, source, lineno, colno, error) => {
+        const errorMsg = message?.toString() || '';
+        if (errorMsg.includes('DeletedApiProjectMapError') || errorMsg.includes('deleted')) {
+          window._googleMapsApiCache.loading = false;
+          window._googleMapsApiCache.loaded = false;
+          delete window[callbackName];
+          reject(new Error('The Google Cloud project associated with this API key has been deleted. Please create a new project and generate a new API key in Google Cloud Console.'));
+          return true;
+        }
+        if (errorMsg.includes('ExpiredKeyMapError') || errorMsg.includes('expired')) {
+          window._googleMapsApiCache.loading = false;
+          window._googleMapsApiCache.loaded = false;
+          delete window[callbackName];
+          reject(new Error('This API key has expired. Please generate a new API key in Google Cloud Console and update your .env file.'));
+          return true;
+        }
+        if (originalErrorHandler) {
+          return originalErrorHandler(message, source, lineno, colno, error);
+        }
+        return false;
       };
       
       // Create script element
       const script = document.createElement('script');
       const librariesParam = libraries.join(',');
-      script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=${librariesParam}&callback=${callbackName}`;
+      // Add loading=async parameter as recommended by Google Maps API
+      script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=${librariesParam}&callback=${callbackName}&loading=async`;
       script.async = true;
       script.defer = true;
-      
-      // Handle errors
-      script.onerror = (error) => {
-        window._googleMapsApiCache.loading = false;
-        delete window[callbackName];
-        reject(new Error('Error loading Google Maps API'));
-      };
       
       // Set timeout to reject promise if loading takes too long
       const timeoutId = setTimeout(() => {
         if (!window._googleMapsApiCache.loaded) {
           window._googleMapsApiCache.loading = false;
           delete window[callbackName];
-          reject(new Error('Timeout loading Google Maps API'));
+          reject(new Error('Timeout loading Google Maps API. Please check your internet connection and API key.'));
         }
       }, 20000); // 20 second timeout
+      
+      // Handle script load errors
+      script.onerror = (error) => {
+        clearTimeout(timeoutId);
+        window._googleMapsApiCache.loading = false;
+        delete window[callbackName];
+        reject(new Error('Failed to load Google Maps API script. Please check your API key, ensure the Maps JavaScript API and Places API are enabled in Google Cloud Console, and verify there are no domain/IP restrictions blocking localhost.'));
+      };
       
       // Add cleanup for successful load
       script.onload = () => {
@@ -137,8 +183,10 @@ if (!window._googleMapsApiCache) {
     });
   };
   
-  export default {
+  const googleMapsLoader = {
     loadGoogleMapsApi,
     geocodeAddress,
     reverseGeocode
   };
+  
+  export default googleMapsLoader;

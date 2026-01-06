@@ -10,7 +10,10 @@ import {
   MenuItem,
   InputAdornment,
   IconButton,
-  Link
+  Link,
+  AppBar,
+  Toolbar,
+  useTheme
 } from "@mui/material";
 import axios from "axios";
 import { useNavigate, Link as RouterLink } from "react-router-dom";
@@ -19,6 +22,7 @@ import SuccessModal from "../common/modal/SuccessModal";
 import Visibility from '@mui/icons-material/Visibility';
 import VisibilityOff from '@mui/icons-material/VisibilityOff';
 import AnimatedBackground from '../common/theme/AnimatedBackground';
+import { useColorMode } from '../common/theme/ColorModeContext';
 
 const Signup = () => {
   const [form, setForm] = useState({
@@ -33,6 +37,12 @@ const Signup = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const navigate = useNavigate();
+  const { mode } = useColorMode();
+  const theme = useTheme();
+  const isDarkMode = theme.palette.mode === 'dark';
+  
+  // Logo selection based on theme mode
+  const logoSrc = mode === 'dark' ? "/images/logo-dark.png" : "/images/logo.png";
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -109,7 +119,6 @@ const Signup = () => {
     
     // If the user is registering as a broker, redirect to the broker registration page
     if (form.type === "broker") {
-      console.log("Redirecting to broker registration...");
       navigate("/broker/register", { 
         state: {
           email: form.email,
@@ -142,23 +151,54 @@ const Signup = () => {
   
   return (
     <>
+    {/* Simple Header for Signup Page */}
+    <AppBar position="static" elevation={0} color="inherit" sx={{ py: 1 }}>
+      <Toolbar>
+        <Box
+          component={RouterLink}
+          to="/"
+          sx={{ display: 'flex', alignItems: 'center', textDecoration: 'none' }}
+        >
+          <img src={logoSrc} alt="Logo" style={{ height: 40 }} />
+        </Box>
+      </Toolbar>
+    </AppBar>
+    
     {/* Animated Background */}
     <AnimatedBackground />
-    <Container maxWidth="md" sx={{ mt: 10 }}>
+    <Container 
+      maxWidth="md" 
+      sx={{ 
+        mt: 4,
+        mb: 8,
+        px: { xs: 2, sm: 3, md: 4 },
+        py: 4
+      }}
+    >
       <SuccessModal
         open={modalOpen}
         message="Signup Successful"
         subtext="Redirecting to login..."
       />
 
-      <Paper elevation={4} sx={{ borderRadius: 3, overflow: "hidden" }}>
+      <Paper 
+        elevation={4} 
+        sx={{ 
+          borderRadius: 3, 
+          overflow: "hidden",
+          backgroundColor: theme.palette.background.paper,
+          border: isDarkMode ? '1px solid rgba(255, 255, 255, 0.1)' : 'none',
+        }}
+      >
         <Grid container>
           {/* Image Section */}
           <Grid item xs={12} md={6} sx={{ display: { xs: "none", md: "block" } }}>
             <Box
               sx={{
                 height: "100%",
-                backgroundColor: "#f5f7fa",
+                backgroundColor: isDarkMode 
+                  ? 'rgba(255, 255, 255, 0.05)' 
+                  : '#f5f7fa',
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",

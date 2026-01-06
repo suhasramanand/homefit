@@ -1,7 +1,7 @@
 // src/pages/preferences/components/LocationStep.jsx
 import React from 'react';
 import { Alert } from '@mui/material';
-import EnhancedLocationPreferenceComponent from '../../components/map/LocationPreferenceComponent';
+import ModernLocationPreference from '../../components/map/ModernLocationPreference';
 
 const LocationStep = ({ formData, handleLocationChange, googleMapsApiKey, errors }) => {
   return (
@@ -12,8 +12,8 @@ const LocationStep = ({ formData, handleLocationChange, googleMapsApiKey, errors
         </Alert>
       )}
       
-      <EnhancedLocationPreferenceComponent
-        value={formData.locationPreference}
+      <ModernLocationPreference
+        value={formData.locationPreference || { center: [0, 0], radius: 5, address: '' }}
         onChange={handleLocationChange}
         googleMapsApiKey={googleMapsApiKey}
       />

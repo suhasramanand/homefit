@@ -5,23 +5,55 @@ import {
   TextField,
   Box,
   Alert,
+  Paper,
 } from "@mui/material";
 import { styled } from "@mui/material/styles";
 import PlaceIcon from "@mui/icons-material/Place";
 import PlacesAutocomplete from "./PlacesAutocomplete";
-import GoogleMapComponent from "./GoogleMapComponent";
+import ModernMapComponent from "../../map/ModernMapComponent";
+
+const SectionCard = styled(Paper)(({ theme }) => ({
+  padding: theme.spacing(4),
+  borderRadius: 16,
+  backgroundColor: theme.palette.mode === "dark" 
+    ? "rgba(255, 255, 255, 0.03)" 
+    : "rgba(0, 0, 0, 0.02)",
+  border: `1px solid ${theme.palette.mode === "dark" 
+    ? "rgba(255, 255, 255, 0.08)" 
+    : "rgba(0, 0, 0, 0.08)"}`,
+  marginTop: theme.spacing(4),
+  transition: "all 0.3s ease",
+  "&:hover": {
+    borderColor: theme.palette.primary.main,
+    boxShadow: theme.palette.mode === "dark"
+      ? "0 4px 20px rgba(0, 179, 134, 0.1)"
+      : "0 4px 20px rgba(0, 179, 134, 0.08)",
+  },
+}));
+
+const SectionHeader = styled(Box)(({ theme }) => ({
+  display: "flex",
+  alignItems: "center",
+  marginBottom: theme.spacing(3),
+  paddingBottom: theme.spacing(2),
+  borderBottom: `2px solid ${theme.palette.mode === "dark" 
+    ? "rgba(255, 255, 255, 0.1)" 
+    : "rgba(0, 0, 0, 0.08)"}`,
+}));
 
 const MapContainer = styled(Box)(({ theme }) => ({
   height: 400,
   width: "100%",
-  borderRadius: 8,
+  borderRadius: 12,
   overflow: "hidden",
-  marginTop: theme.spacing(2),
+  marginTop: theme.spacing(3),
   marginBottom: theme.spacing(2),
-  border:
-    theme.palette.mode === "dark"
-      ? "1px solid rgba(255, 255, 255, 0.1)"
-      : "1px solid rgba(0, 0, 0, 0.1)",
+  border: `2px solid ${theme.palette.mode === "dark"
+    ? "rgba(255, 255, 255, 0.1)"
+    : "rgba(0, 0, 0, 0.1)"}`,
+  boxShadow: theme.palette.mode === "dark"
+    ? "0 4px 12px rgba(0, 0, 0, 0.2)"
+    : "0 4px 12px rgba(0, 0, 0, 0.08)",
 }));
 
 const LocationSection = ({
@@ -30,21 +62,41 @@ const LocationSection = ({
   handlePlaceSelected,
   googleMapsApiKey,
   geocodingError,
+  isDarkMode,
+  primaryColor,
 }) => {
   return (
-    <Box mt={5}>
-      <Typography
-        variant="subtitle1"
-        fontWeight={600}
-        gutterBottom
-        color="text.primary"
-      >
-        <PlaceIcon sx={{ mr: 1 }} /> Location
-      </Typography>
-      <Typography variant="body2" color="text.secondary" paragraph>
-        Start typing to search for an address, or click directly on the
-        map to set the location.
-      </Typography>
+    <SectionCard elevation={0}>
+      <SectionHeader>
+        <Box
+          sx={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            width: 48,
+            height: 48,
+            borderRadius: 2,
+            backgroundColor: `${primaryColor}15`,
+            color: primaryColor,
+            mr: 2,
+          }}
+        >
+          <PlaceIcon />
+        </Box>
+        <Box>
+          <Typography
+            variant="h6"
+            fontWeight={700}
+            color="text.primary"
+            gutterBottom
+          >
+            Property Location
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            Start typing to search for an address, or click directly on the map to set the location.
+          </Typography>
+        </Box>
+      </SectionHeader>
 
       <Grid container spacing={2}>
         <Grid item xs={12} md={8}>
@@ -82,19 +134,30 @@ const LocationSection = ({
       </Grid>
 
       {geocodingError && (
-        <Alert severity="error" sx={{ mt: 2 }}>
+        <Alert severity="error" sx={{ mt: 2, borderRadius: 2 }}>
           {geocodingError}
         </Alert>
       )}
 
       <MapContainer>
-        <GoogleMapComponent
+        <ModernMapComponent
           position={formData.location.coordinates}
-          onPositionChange={handlePositionChange}
+          onPositionChange={(newPos) => {
+            // Convert from [lng, lat] to { lat, lng } format
+            if (handlePositionChange) {
+              handlePositionChange({
+                lat: newPos[1],
+                lng: newPos[0],
+              });
+            }
+          }}
           apiKey={googleMapsApiKey}
+          zoom={14}
+          showRadius={false}
+          height={400}
         />
       </MapContainer>
-    </Box>
+    </SectionCard>
   );
 };
 

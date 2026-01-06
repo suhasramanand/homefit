@@ -1,55 +1,29 @@
+/**
+ * Broker Settings Page
+ * Main component that aggregates all broker settings sub-components
+ */
+
 import React, { useState, useEffect } from 'react';
 import {
   Box,
-  Paper,
   Typography,
-  TextField,
-  Button,
-  Grid,
-  Switch,
-  FormControlLabel,
-  Divider,
-  Alert,
-  Snackbar,
-  InputAdornment,
-  IconButton,
-  CircularProgress,
-  useTheme,
   Tab,
   Tabs,
-  Avatar,
-  Card,
-  CardContent,
+  Alert,
+  Snackbar,
+  useTheme,
 } from '@mui/material';
-import Visibility from '@mui/icons-material/Visibility';
-import VisibilityOff from '@mui/icons-material/VisibilityOff';
-import SaveIcon from '@mui/icons-material/Save';
 import SecurityIcon from '@mui/icons-material/Security';
 import NotificationsIcon from '@mui/icons-material/Notifications';
 import AccountCircleIcon from '@mui/icons-material/AccountCircle';
-import PersonIcon from '@mui/icons-material/Person';
-import PhoneIcon from '@mui/icons-material/Phone';
-import BusinessIcon from '@mui/icons-material/Business';
-import EmailIcon from '@mui/icons-material/Email';
-import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import axios from 'axios';
 import { useSelector } from 'react-redux';
 
-function TabPanel(props) {
-  const { children, value, index, ...other } = props;
-
-  return (
-    <div
-      role="tabpanel"
-      hidden={value !== index}
-      id={`settings-tabpanel-${index}`}
-      aria-labelledby={`settings-tab-${index}`}
-      {...other}
-    >
-      {value === index && <Box sx={{ p: 3 }}>{children}</Box>}
-    </div>
-  );
-}
+// Import sub-components
+import TabPanel from '../../components/broker/settings/TabPanel';
+import ProfileSettings from '../../components/broker/settings/ProfileSettings';
+import PasswordSettings from '../../components/broker/settings/PasswordSettings';
+import NotificationSettings from '../../components/broker/settings/NotificationSettings';
 
 const BrokerSettings = () => {
   const theme = useTheme();
@@ -99,7 +73,6 @@ const BrokerSettings = () => {
   const [previewImage, setPreviewImage] = useState(null);
   
   useEffect(() => {
-    // Fetch broker profile data
     const fetchBrokerData = async () => {
       try {
         const response = await axios.get('/api/broker/me', { withCredentials: true });
@@ -112,13 +85,9 @@ const BrokerSettings = () => {
           bio: brokerData.bio || '',
         });
         
-        // Set initial profile image if available
         if (brokerData.imagePath) {
           setPreviewImage(brokerData.imagePath);
         }
-        
-        // In a real app, you would also fetch notification preferences
-        // For now, we'll use the default state
       } catch (error) {
         console.error('Error fetching broker data:', error);
         setSnackbar({
@@ -140,7 +109,6 @@ const BrokerSettings = () => {
     const { name, value } = e.target;
     setProfileData((prev) => ({ ...prev, [name]: value }));
     
-    // Clear errors when field is edited
     if (errors[name]) {
       setErrors((prev) => ({ ...prev, [name]: '' }));
     }
@@ -150,7 +118,6 @@ const BrokerSettings = () => {
     const { name, value } = e.target;
     setPasswordData((prev) => ({ ...prev, [name]: value }));
     
-    // Clear errors when field is edited
     if (errors[name]) {
       setErrors((prev) => ({ ...prev, [name]: '' }));
     }
@@ -166,7 +133,6 @@ const BrokerSettings = () => {
       const file = e.target.files[0];
       setProfileData((prev) => ({ ...prev, profileImage: file }));
       
-      // Create a preview
       const reader = new FileReader();
       reader.onloadend = () => {
         setPreviewImage(reader.result);
@@ -270,7 +236,6 @@ const BrokerSettings = () => {
         newPassword: passwordData.newPassword,
       }, { withCredentials: true });
       
-      // Clear password fields after successful update
       setPasswordData({
         currentPassword: '',
         newPassword: '',
@@ -285,7 +250,6 @@ const BrokerSettings = () => {
     } catch (error) {
       console.error('Error updating password:', error);
       
-      // Handle specific errors
       if (error.response && error.response.status === 401) {
         setErrors({ currentPassword: 'Current password is incorrect' });
       } else {
@@ -369,433 +333,50 @@ const BrokerSettings = () => {
         </Tabs>
       </Box>
       
-      {/* Profile Settings Tab */}
       <TabPanel value={tabValue} index={0}>
-        <Grid container spacing={4}>
-          <Grid item xs={12} md={4}>
-            <Card 
-              elevation={1}
-              sx={{
-                borderRadius: 2,
-                backgroundColor: isDarkMode ? 'rgba(255, 255, 255, 0.05)' : '#fff',
-                border: isDarkMode ? '1px solid rgba(255, 255, 255, 0.1)' : 'none',
-              }}
-            >
-              <CardContent sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', p: 3 }}>
-                <Avatar
-                  src={previewImage}
-                  alt={profileData.fullName}
-                  sx={{ 
-                    width: 120, 
-                    height: 120, 
-                    mb: 2,
-                    bgcolor: theme.palette.primary.main
-                  }}
-                >
-                  {!previewImage && profileData.fullName ? profileData.fullName.charAt(0).toUpperCase() : <PersonIcon fontSize="large" />}
-                </Avatar>
-                
-                <Typography variant="h6" gutterBottom textAlign="center">
-                  {profileData.fullName || 'Your Name'}
-                </Typography>
-                
-                <Typography variant="body2" color="text.secondary" textAlign="center" mb={3}>
-                  {user?.email || 'broker@example.com'}
-                </Typography>
-                
-                <Button
-                  variant="outlined"
-                  component="label"
-                  startIcon={<CloudUploadIcon />}
-                  sx={{ mb: 2 }}
-                >
-                  Change Photo
-                  <input
-                    type="file"
-                    accept="image/*"
-                    hidden
-                    onChange={handleImageChange}
-                  />
-                </Button>
-                
-                <Typography variant="caption" color="text.secondary" textAlign="center">
-                  Recommended: Square image, at least 300x300 pixels
-                </Typography>
-              </CardContent>
-            </Card>
-          </Grid>
-          
-          <Grid item xs={12} md={8}>
-            <Paper
-              elevation={1}
-              sx={{
-                p: 3,
-                borderRadius: 2,
-                backgroundColor: isDarkMode ? 'rgba(255, 255, 255, 0.05)' : '#fff',
-                border: isDarkMode ? '1px solid rgba(255, 255, 255, 0.1)' : 'none',
-              }}
-            >
-              <Typography variant="h6" gutterBottom>
-                Personal Information
-              </Typography>
-              <Divider sx={{ mb: 3 }} />
-              
-              <Box component="form" onSubmit={handleProfileSubmit}>
-                <Grid container spacing={3}>
-                  <Grid item xs={12}>
-                    <TextField
-                      label="Full Name"
-                      name="fullName"
-                      value={profileData.fullName}
-                      onChange={handleProfileChange}
-                      fullWidth
-                      required
-                      error={!!errors.fullName}
-                      helperText={errors.fullName}
-                      InputProps={{
-                        startAdornment: (
-                          <InputAdornment position="start">
-                            <PersonIcon color="action" />
-                          </InputAdornment>
-                        ),
-                      }}
-                    />
-                  </Grid>
-                  
-                  <Grid item xs={12}>
-                    <TextField
-                      label="Phone Number"
-                      name="phone"
-                      value={profileData.phone}
-                      onChange={handleProfileChange}
-                      fullWidth
-                      required
-                      error={!!errors.phone}
-                      helperText={errors.phone}
-                      InputProps={{
-                        startAdornment: (
-                          <InputAdornment position="start">
-                            <PhoneIcon color="action" />
-                          </InputAdornment>
-                        ),
-                      }}
-                    />
-                  </Grid>
-                  
-                  <Grid item xs={12}>
-                    <TextField
-                      label="Company Name"
-                      name="companyName"
-                      value={profileData.companyName}
-                      onChange={handleProfileChange}
-                      fullWidth
-                      InputProps={{
-                        startAdornment: (
-                          <InputAdornment position="start">
-                            <BusinessIcon color="action" />
-                          </InputAdornment>
-                        ),
-                      }}
-                    />
-                  </Grid>
-                  
-                  <Grid item xs={12}>
-                    <TextField
-                      label="Bio"
-                      name="bio"
-                      value={profileData.bio}
-                      onChange={handleProfileChange}
-                      fullWidth
-                      multiline
-                      rows={4}
-                      placeholder="Tell clients a bit about yourself and your expertise..."
-                    />
-                  </Grid>
-                  
-                  <Grid item xs={12}>
-                    <Typography variant="body2" color="text.secondary" gutterBottom>
-                      Your email address is used for login and cannot be changed.
-                    </Typography>
-                    <TextField
-                      label="Email Address"
-                      value={user?.email || ''}
-                      fullWidth
-                      disabled
-                      InputProps={{
-                        startAdornment: (
-                          <InputAdornment position="start">
-                            <EmailIcon color="action" />
-                          </InputAdornment>
-                        ),
-                      }}
-                    />
-                  </Grid>
-                </Grid>
-                
-                <Box sx={{ mt: 4, display: 'flex', justifyContent: 'flex-end' }}>
-                  <Button
-                    type="submit"
-                    variant="contained"
-                    disabled={loading}
-                    startIcon={loading ? <CircularProgress size={20} /> : <SaveIcon />}
-                    sx={{
-                      borderRadius: 2,
-                      px: 3,
-                      py: 1.2,
-                      bgcolor: primaryColor,
-                      '&:hover': {
-                        bgcolor: theme.palette.primary.dark,
-                      },
-                    }}
-                  >
-                    {loading ? 'Saving...' : 'Save Changes'}
-                  </Button>
-                </Box>
-              </Box>
-            </Paper>
-          </Grid>
-        </Grid>
+        <ProfileSettings
+          profileData={profileData}
+          previewImage={previewImage}
+          errors={errors}
+          loading={loading}
+          primaryColor={primaryColor}
+          isDarkMode={isDarkMode}
+          userEmail={user?.email}
+          onImageChange={handleImageChange}
+          onProfileChange={handleProfileChange}
+          onProfileSubmit={handleProfileSubmit}
+        />
       </TabPanel>
       
-      {/* Password Settings Tab */}
       <TabPanel value={tabValue} index={1}>
-        <Paper
-          elevation={1}
-          sx={{
-            p: 3,
-            borderRadius: 2,
-            backgroundColor: isDarkMode ? 'rgba(255, 255, 255, 0.05)' : '#fff',
-            border: isDarkMode ? '1px solid rgba(255, 255, 255, 0.1)' : 'none',
-            maxWidth: 600,
-            mx: 'auto',
-          }}
-        >
-          <Typography variant="h6" gutterBottom>
-            Change Password
-          </Typography>
-          <Divider sx={{ mb: 3 }} />
-          
-          <Alert severity="info" sx={{ mb: 3 }}>
-            Your password should be at least 8 characters and include a mix of letters, numbers, and symbols for best security.
-          </Alert>
-          
-          <Box component="form" onSubmit={handlePasswordSubmit}>
-            <Grid container spacing={3}>
-              <Grid item xs={12}>
-                <TextField
-                  label="Current Password"
-                  name="currentPassword"
-                  type={showCurrentPassword ? 'text' : 'password'}
-                  value={passwordData.currentPassword}
-                  onChange={handlePasswordChange}
-                  fullWidth
-                  required
-                  error={!!errors.currentPassword}
-                  helperText={errors.currentPassword}
-                  InputProps={{
-                    endAdornment: (
-                      <InputAdornment position="end">
-                        <IconButton
-                          onClick={() => setShowCurrentPassword(!showCurrentPassword)}
-                          edge="end"
-                        >
-                          {showCurrentPassword ? <VisibilityOff /> : <Visibility />}
-                        </IconButton>
-                      </InputAdornment>
-                    ),
-                  }}
-                />
-              </Grid>
-              
-              <Grid item xs={12}>
-                <TextField
-                  label="New Password"
-                  name="newPassword"
-                  type={showNewPassword ? 'text' : 'password'}
-                  value={passwordData.newPassword}
-                  onChange={handlePasswordChange}
-                  fullWidth
-                  required
-                  error={!!errors.newPassword}
-                  helperText={errors.newPassword}
-                  InputProps={{
-                    endAdornment: (
-                      <InputAdornment position="end">
-                        <IconButton
-                          onClick={() => setShowNewPassword(!showNewPassword)}
-                          edge="end"
-                        >
-                          {showNewPassword ? <VisibilityOff /> : <Visibility />}
-                        </IconButton>
-                      </InputAdornment>
-                    ),
-                  }}
-                />
-              </Grid>
-              
-              <Grid item xs={12}>
-                <TextField
-                  label="Confirm New Password"
-                  name="confirmPassword"
-                  type={showConfirmPassword ? 'text' : 'password'}
-                  value={passwordData.confirmPassword}
-                  onChange={handlePasswordChange}
-                  fullWidth
-                  required
-                  error={!!errors.confirmPassword}
-                  helperText={errors.confirmPassword}
-                  InputProps={{
-                    endAdornment: (
-                      <InputAdornment position="end">
-                        <IconButton
-                          onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                          edge="end"
-                        >
-                          {showConfirmPassword ? <VisibilityOff /> : <Visibility />}
-                        </IconButton>
-                      </InputAdornment>
-                    ),
-                  }}
-                />
-              </Grid>
-            </Grid>
-            
-            <Box sx={{ mt: 4, display: 'flex', justifyContent: 'flex-end' }}>
-              <Button
-                type="submit"
-                variant="contained"
-                disabled={loading}
-                startIcon={loading ? <CircularProgress size={20} /> : <SaveIcon />}
-                sx={{
-                  borderRadius: 2,
-                  px: 3,
-                  py: 1.2,
-                  bgcolor: primaryColor,
-                  '&:hover': {
-                    bgcolor: theme.palette.primary.dark,
-                  },
-                }}
-              >
-                {loading ? 'Updating...' : 'Update Password'}
-              </Button>
-            </Box>
-          </Box>
-        </Paper>
+        <PasswordSettings
+          passwordData={passwordData}
+          errors={errors}
+          loading={loading}
+          primaryColor={primaryColor}
+          isDarkMode={isDarkMode}
+          showCurrentPassword={showCurrentPassword}
+          showNewPassword={showNewPassword}
+          showConfirmPassword={showConfirmPassword}
+          onPasswordChange={handlePasswordChange}
+          onToggleCurrentPassword={() => setShowCurrentPassword(!showCurrentPassword)}
+          onToggleNewPassword={() => setShowNewPassword(!showNewPassword)}
+          onToggleConfirmPassword={() => setShowConfirmPassword(!showConfirmPassword)}
+          onSubmit={handlePasswordSubmit}
+        />
       </TabPanel>
       
-      {/* Notification Settings Tab */}
       <TabPanel value={tabValue} index={2}>
-        <Paper
-          elevation={1}
-          sx={{
-            p: 3,
-            borderRadius: 2,
-            backgroundColor: isDarkMode ? 'rgba(255, 255, 255, 0.05)' : '#fff',
-            border: isDarkMode ? '1px solid rgba(255, 255, 255, 0.1)' : 'none',
-            maxWidth: 600,
-            mx: 'auto',
-          }}
-        >
-          <Typography variant="h6" gutterBottom>
-            Notification Preferences
-          </Typography>
-          <Divider sx={{ mb: 3 }} />
-          
-          <Box component="form" onSubmit={handleNotificationSubmit}>
-            <Grid container spacing={2}>
-              <Grid item xs={12}>
-                <FormControlLabel
-                  control={
-                    <Switch
-                      checked={notificationSettings.emailNotifications}
-                      onChange={handleNotificationChange}
-                      name="emailNotifications"
-                      color="primary"
-                    />
-                  }
-                  label="Email Notifications"
-                />
-                <Typography variant="body2" color="text.secondary" ml={4}>
-                  Receive all notifications via email
-                </Typography>
-              </Grid>
-              
-              <Grid item xs={12}>
-                <FormControlLabel
-                  control={
-                    <Switch
-                      checked={notificationSettings.newInquiryAlerts}
-                      onChange={handleNotificationChange}
-                      name="newInquiryAlerts"
-                      color="primary"
-                    />
-                  }
-                  label="New Inquiry Alerts"
-                />
-                <Typography variant="body2" color="text.secondary" ml={4}>
-                  Get notified when you receive new inquiries about your listings
-                </Typography>
-              </Grid>
-              
-              <Grid item xs={12}>
-                <FormControlLabel
-                  control={
-                    <Switch
-                      checked={notificationSettings.marketingUpdates}
-                      onChange={handleNotificationChange}
-                      name="marketingUpdates"
-                      color="primary"
-                    />
-                  }
-                  label="Marketing Updates"
-                />
-                <Typography variant="body2" color="text.secondary" ml={4}>
-                  Receive marketing tips and platform updates
-                </Typography>
-              </Grid>
-              
-              <Grid item xs={12}>
-                <FormControlLabel
-                  control={
-                    <Switch
-                      checked={notificationSettings.accountAlerts}
-                      onChange={handleNotificationChange}
-                      name="accountAlerts"
-                      color="primary"
-                    />
-                  }
-                  label="Account Alerts"
-                />
-                <Typography variant="body2" color="text.secondary" ml={4}>
-                  Important notifications about your account
-                </Typography>
-              </Grid>
-            </Grid>
-            
-            <Box sx={{ mt: 4, display: 'flex', justifyContent: 'flex-end' }}>
-              <Button
-                type="submit"
-                variant="contained"
-                disabled={loading}
-                startIcon={loading ? <CircularProgress size={20} /> : <SaveIcon />}
-                sx={{
-                  borderRadius: 2,
-                  px: 3,
-                  py: 1.2,
-                  bgcolor: primaryColor,
-                  '&:hover': {
-                    bgcolor: theme.palette.primary.dark,
-                  },
-                }}
-              >
-                {loading ? 'Saving...' : 'Save Preferences'}
-              </Button>
-            </Box>
-          </Box>
-        </Paper>
+        <NotificationSettings
+          notificationSettings={notificationSettings}
+          loading={loading}
+          primaryColor={primaryColor}
+          isDarkMode={isDarkMode}
+          onChange={handleNotificationChange}
+          onSubmit={handleNotificationSubmit}
+        />
       </TabPanel>
       
-      {/* Snackbar for notifications */}
       <Snackbar
         open={snackbar.open}
         autoHideDuration={6000}

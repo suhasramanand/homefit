@@ -1,5 +1,6 @@
 // scripts/clearRedisCache.js
 const { redisClient } = require('../utils/redisClient');
+const logger = require('../utils/logger');
 
 // Clear all Redis cache
 const clearAllCache = async () => {
@@ -11,13 +12,13 @@ const clearAllCache = async () => {
     
     // Use the FLUSHALL command
     await redisClient.flushAll();
-    console.log('Successfully cleared all Redis cache');
+    logger.info('Successfully cleared all Redis cache');
     
     // Close connection when done
     await redisClient.quit();
     process.exit(0);
   } catch (error) {
-    console.error('Error with Redis operation:', error);
+    logger.error('Error with Redis operation:', error);
     process.exit(1);
   }
 };

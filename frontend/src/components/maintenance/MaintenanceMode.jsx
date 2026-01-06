@@ -38,7 +38,7 @@ const MaintenanceMode = ({ message, estimatedTime }) => {
             borderRadius: 3,
             overflow: 'hidden',
             position: 'relative',
-            bgcolor: isDarkMode ? 'background.paper' : '#ffffff',
+            bgcolor: theme.palette.background.paper,
             boxShadow: '0 10px 40px rgba(0,0,0,0.1)',
           }}
         >

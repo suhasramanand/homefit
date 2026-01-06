@@ -306,7 +306,7 @@ const AdminBrokers = () => {
         elevation={2}
         sx={{
           borderRadius: 2,
-          backgroundColor: isDarkMode ? 'rgba(255, 255, 255, 0.05)' : '#fff',
+          backgroundColor: theme.palette.background.paper,
           border: isDarkMode ? '1px solid rgba(255, 255, 255, 0.1)' : 'none',
           mb: 3,
         }}
@@ -340,7 +340,7 @@ const AdminBrokers = () => {
         elevation={2}
         sx={{
           borderRadius: 2,
-          backgroundColor: isDarkMode ? 'rgba(255, 255, 255, 0.05)' : '#fff',
+          backgroundColor: theme.palette.background.paper,
           border: isDarkMode ? '1px solid rgba(255, 255, 255, 0.1)' : 'none',
         }}
       >
@@ -473,7 +473,7 @@ const AdminBrokers = () => {
           elevation: 3,
           sx: {
             borderRadius: 2,
-            backgroundColor: isDarkMode ? 'rgba(255, 255, 255, 0.05)' : '#fff',
+            backgroundColor: theme.palette.background.paper,
             border: isDarkMode ? '1px solid rgba(255, 255, 255, 0.1)' : 'none',
           },
         }}

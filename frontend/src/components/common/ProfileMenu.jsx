@@ -62,9 +62,10 @@ const ProfileMenu = ({ user }) => {
       return imagePath;
     }
     
-    // If it's a relative path, prepend the base URL
+    // If it's a relative path, prepend the backend URL (not frontend origin)
     if (imagePath.startsWith('/')) {
-      return `${window.location.origin}${imagePath}`;
+      // Use backend URL for serving images
+      return `http://localhost:4000${imagePath}`;
     }
     
     // Handle other cases if needed
@@ -82,16 +83,6 @@ const ProfileMenu = ({ user }) => {
     return "U";
   };
 
-  // Log image path for debugging
-  React.useEffect(() => {
-    if (user) {
-      console.log("ProfileMenu user data:", user);
-      console.log("Image path:", user.imagePath);
-      if (user.imagePath) {
-        console.log("Full image URL:", getFullImageUrl(user.imagePath));
-      }
-    }
-  }, [user]);
 
   return (
     <>

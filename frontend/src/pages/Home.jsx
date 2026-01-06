@@ -16,6 +16,7 @@ import axios from "axios";
 
 // Import the role-specific home pages
 import UserHome from "./user/UserHome";
+import UserDashboard from "./user/UserDashboard";
 import AdminHome from "./admin/AdminHome";
 import BrokerHome from "./broker/BrokerHome";
 
@@ -29,8 +30,6 @@ const Home = () => {
   const [pendingAction, setPendingAction] = useState("");
   const [loading, setLoading] = useState(false);
 
-  // Log the user data for debugging
-  console.log("Home component - Current user:", user);
   
   const fetchLatestPreference = async () => {
     try {
@@ -49,10 +48,12 @@ const Home = () => {
         navigate("/preferences");
       }
     } catch (err) {
-      console.error("Error fetching preferences:", err);
+      // 404 is expected for users without preferences - handle silently
       if (err.response?.status === 404) {
         navigate("/preferences");
       } else {
+        // Only log/show errors for non-404 cases
+        console.error("Error fetching preferences:", err);
         alert("Something went wrong. Please try again.");
       }
     } finally {
@@ -101,14 +102,12 @@ const Home = () => {
   // Determine which home page to show based on user role
   const renderHomePage = () => {
     if (!user) {
-      // If no user is logged in, show the regular user home page
+      // If no user is logged in, show the marketing/landing page
       return <UserHome onActionClick={handleActionClick} />;
     }
 
     // Make sure to handle the case where user.type might be undefined/null
     const userType = user.type || 'user';
-    
-    console.log("Rendering home page for user type:", userType);
     
     switch (userType) {
       case "admin":
@@ -116,7 +115,8 @@ const Home = () => {
       case "broker":
         return <BrokerHome />;
       default:
-        return <UserHome onActionClick={handleActionClick} />;
+        // For logged-in regular users, show dashboard instead of marketing page
+        return <UserDashboard />;
     }
   };
 

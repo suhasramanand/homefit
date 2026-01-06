@@ -126,7 +126,13 @@ router.get('/me', checkAuth('broker'), async (req, res) => {
     }
     res.json(user);
   } catch (err) {
-    console.error("Error fetching broker profile:", err);
+    const logger = require('../utils/logger');
+    logger.error("Error fetching broker profile:", err);
+    
+    if (err.name === 'CastError') {
+      return res.status(400).json({ message: "Invalid user ID format" });
+    }
+    
     res.status(500).json({ message: "Failed to fetch broker profile" });
   }
 });

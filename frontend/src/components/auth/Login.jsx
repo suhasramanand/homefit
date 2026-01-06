@@ -10,7 +10,10 @@ import {
   InputAdornment,
   IconButton,
   CircularProgress,
-  Link
+  Link,
+  AppBar,
+  Toolbar,
+  useTheme
 } from '@mui/material';
 import { useDispatch } from 'react-redux';
 import { loginSuccess } from '../../redux/userSlice';
@@ -19,6 +22,7 @@ import axios from 'axios';
 import GoogleLoginButton from "../common/buttons/GoogleLoginButton";
 import Visibility from '@mui/icons-material/Visibility';
 import VisibilityOff from '@mui/icons-material/VisibilityOff';
+import { useColorMode } from '../common/theme/ColorModeContext';
 
 // Fixed Background Animation Component using inline styles instead of Tailwind classes
 const AnimatedBackground = () => {
@@ -140,6 +144,12 @@ const Login = () => {
 
   const dispatch = useDispatch();
   const navigate = useNavigate();
+  const { mode } = useColorMode();
+  const theme = useTheme();
+  const isDarkMode = theme.palette.mode === 'dark';
+  
+  // Logo selection based on theme mode
+  const logoSrc = mode === 'dark' ? "/images/logo-dark.png" : "/images/logo.png";
 
   const handleTogglePasswordVisibility = () => {
     setShowPassword(!showPassword);
@@ -156,7 +166,6 @@ const Login = () => {
       if (sessionRes.data && sessionRes.data.user) {
         // This ensures we have the complete, properly formatted user data
         dispatch(loginSuccess(sessionRes.data.user));
-        console.log('Complete user profile loaded successfully');
         return sessionRes.data.user;
       }
       return null;
@@ -196,8 +205,6 @@ const Login = () => {
           
           // Initial dispatch with broker data
           dispatch(loginSuccess(updatedUserData));
-          
-          console.log('Broker login successful with approval status:', updatedUserData.isApproved);
         } catch (brokerErr) {
           console.error('Error fetching broker data:', brokerErr);
           // Still login with basic user data if broker data fetch fails
@@ -223,15 +230,29 @@ const Login = () => {
   
   return (
     <>
+      {/* Simple Header for Login Page */}
+      <AppBar position="static" elevation={0} color="inherit" sx={{ py: 1 }}>
+        <Toolbar>
+          <Box
+            component={RouterLink}
+            to="/"
+            sx={{ display: 'flex', alignItems: 'center', textDecoration: 'none' }}
+          >
+            <img src={logoSrc} alt="Logo" style={{ height: 40 }} />
+          </Box>
+        </Toolbar>
+      </AppBar>
+      
       {/* Animated Background */}
       <AnimatedBackground />
       
-      <Container maxWidth="md" sx={{ mt: 10 }}>
+      <Container maxWidth="md" sx={{ mt: 4 }}>
         <Paper elevation={4} sx={{ 
           borderRadius: 3, 
           overflow: 'hidden',
           backdropFilter: 'blur(4px)',
-          background: 'rgba(255, 255, 255, 0.9)', // Slightly transparent paper
+          backgroundColor: theme.palette.background.paper,
+          border: isDarkMode ? '1px solid rgba(255, 255, 255, 0.1)' : 'none',
         }}>
           <Grid container>
             {/* Image Section */}
@@ -239,7 +260,9 @@ const Login = () => {
               <Box
                 sx={{
                   height: '100%',
-                  backgroundColor: 'rgba(245, 247, 250, 0.8)', // Slightly transparent background
+                  backgroundColor: isDarkMode 
+                    ? 'rgba(255, 255, 255, 0.05)' 
+                    : 'rgba(245, 247, 250, 0.8)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',

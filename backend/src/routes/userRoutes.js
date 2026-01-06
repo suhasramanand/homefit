@@ -1,9 +1,11 @@
 //routes/userRoutes.js
 const express = require('express');
 const router = express.Router();
+const multer = require('multer');
 const userController = require('../controllers/userController');
-const { validateUserCreation, validateUserUpdate } = require('../middleware/validateRequest');
+const { validateUserCreation, validateUserUpdate, validateLogin, validateObjectId } = require('../middleware/validateRequest');
 const upload = require('../middleware/uploadMiddleware');
+const profileImageUpload = require('../middleware/profileImageUpload');
 const { submitPreferences, getMatches } = require('../controllers/userController');
 
 // 🔐 Session-based auth middleware
@@ -39,8 +41,29 @@ const isUser = (req, res, next) => {
   }
 };
 
+// Error handling middleware for multer uploads (must be defined before routes)
+const handleMulterError = (err, req, res, next) => {
+  if (err) {
+    if (err instanceof multer.MulterError) {
+      const logger = require('../utils/logger');
+      logger.error("Multer error:", err.message, err.code);
+      return res.status(400).json({ 
+        error: `Upload error: ${err.message}`,
+        code: err.code
+      });
+    } else {
+      // File filter errors or other upload errors
+      logger.error("Upload error:", err.message);
+      return res.status(400).json({ 
+        error: err.message || "Upload failed"
+      });
+    }
+  }
+  next();
+};
+
 // ✅ Auth routes
-router.post('/login', userController.loginUser);
+router.post('/login', validateLogin, userController.loginUser);
 router.post('/logout', userController.logoutUser);
 router.get('/session', userController.getSession);
 router.post('/create', validateUserCreation, userController.createUser);
@@ -54,7 +77,17 @@ router.get('/profile', isAuthenticated, userController.getProfile);
 router.get('/notification-settings', isAuthenticated, userController.getNotificationSettings);
 router.put('/notification-settings', isAuthenticated, userController.updateNotificationSettings);
 router.put('/change-password', isAuthenticated, userController.changePassword);
-router.post('/upload-profile-image', isAuthenticated, upload.single('profileImage'), userController.uploadProfileImage);
+router.post('/upload-profile-image', 
+  isAuthenticated, 
+  profileImageUpload.single('profileImage'),
+  (err, req, res, next) => {
+    if (err) {
+      return handleMulterError(err, req, res, next);
+    }
+    next();
+  },
+  userController.uploadProfileImage
+);
 
 // ✅ Protected user routes
 router.put('/edit', isAuthenticated, validateUserUpdate, userController.updateUser);
@@ -70,6 +103,11 @@ router.post('/contact-broker', isAuthenticated, isUser, userController.contactBr
 // ✅ User Preferences and Matching
 router.post('/preferences', isAuthenticated, isUser, submitPreferences);
 router.get('/preferences/latest', isAuthenticated, isUser, userController.getLatestPreference);
-router.get('/matches/:prefId', isAuthenticated, isUser, getMatches);
+router.get('/matches/:prefId', isAuthenticated, isUser, validateObjectId('prefId'), getMatches);
+
+// ✅ MBTA API Proxy (for bus stops)
+const mbtaController = require('../controllers/user/mbtaController');
+router.get('/mbta/stops', isAuthenticated, mbtaController.getNearbyBusStops);
+router.get('/mbta/routes/:stopId', isAuthenticated, mbtaController.getStopRoutes);
 
 module.exports = router;

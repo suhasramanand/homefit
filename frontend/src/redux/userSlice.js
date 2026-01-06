@@ -34,6 +34,15 @@ const userSlice = createSlice({
       state.isAuthenticated = true;
     },
     logout: (state) => {
+      // Clear match cache on logout
+      try {
+        const matchCacheKeys = Object.keys(localStorage).filter(key => 
+          key.startsWith('match_results_') || key.startsWith('preference_updated_at_')
+        );
+        matchCacheKeys.forEach(key => localStorage.removeItem(key));
+      } catch (error) {
+        console.warn('Failed to clear match cache on logout:', error);
+      }
       state.user = null;
       state.isAuthenticated = false;
       state.statusLoading = false;

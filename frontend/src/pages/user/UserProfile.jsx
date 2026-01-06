@@ -90,9 +90,13 @@ const UserProfile = () => {
   
           // Set initial profile image if available
           if (user.imagePath) {
+            // Construct full URL for the image
+            const imageUrl = user.imagePath.startsWith('http') 
+              ? user.imagePath 
+              : `http://localhost:4000${user.imagePath}`;
             // Add cache-buster to prevent stale images
             const cacheBuster = `?t=${Date.now()}`;
-            setPreviewImage(`${user.imagePath}${cacheBuster}`);
+            setPreviewImage(`${imageUrl}${cacheBuster}`);
           }
   
           // Set notification settings if available
@@ -124,9 +128,13 @@ const UserProfile = () => {
   
           // Set initial profile image if available
           if (data.user.imagePath) {
+            // Construct full URL for the image
+            const imageUrl = data.user.imagePath.startsWith('http') 
+              ? data.user.imagePath 
+              : `http://localhost:4000${data.user.imagePath}`;
             // Add cache-buster to prevent stale images
             const cacheBuster = `?t=${Date.now()}`;
-            setPreviewImage(`${data.user.imagePath}${cacheBuster}`);
+            setPreviewImage(`${imageUrl}${cacheBuster}`);
           }
         }
   
@@ -172,39 +180,47 @@ const UserProfile = () => {
       console.log("Refreshing user data...");
       setLoading(true);
   
-      // Use the full URL with http://localhost:4000 prefix
-      const { data } = await axios.get("http://localhost:4000/api/user/session", {
+      // Fetch from profile endpoint to get fresh data from database (not session)
+      // This ensures we get the latest imagePath and other profile data
+      const { data: profileData } = await axios.get("http://localhost:4000/api/user/profile", {
         withCredentials: true,
       });
   
-      console.log("Fresh user data received:", data.user);
+      console.log("Fresh user data received:", profileData);
   
-      if (data.user) {
+      if (profileData) {
         // Update Redux state first
-        dispatch(loginSuccess(data.user));
+        dispatch(loginSuccess(profileData));
   
         // Then update local component state
         setProfileData(prevData => ({
           ...prevData,
-          fullName: data.user.fullName || "",
-          email: data.user.email || "",
-          bio: data.user.bio || "",
+          fullName: profileData.fullName || "",
+          email: profileData.email || "",
+          bio: profileData.bio || "",
         }));
   
-        // Update preview image - make sure to prevent null values from overriding existing previews
-        if (data.user.imagePath) {
+        // Update preview image - use the latest imagePath from database
+        if (profileData.imagePath) {
+          // Construct full URL for the image
+          const imageUrl = profileData.imagePath.startsWith('http') 
+            ? profileData.imagePath 
+            : `http://localhost:4000${profileData.imagePath}`;
           // Force image refresh by adding cache-busting parameter
           const cacheBuster = `?t=${Date.now()}`;
-          setPreviewImage(`${data.user.imagePath}${cacheBuster}`);
+          setPreviewImage(`${imageUrl}${cacheBuster}`);
+        } else {
+          // Clear preview if no image path
+          setPreviewImage(null);
         }
   
         // Update notification settings if available
-        if (data.user.notificationSettings) {
+        if (profileData.notificationSettings) {
           setNotificationSettings({
-            emailNotifications: data.user.notificationSettings.emailNotifications ?? true,
-            newListingAlerts: data.user.notificationSettings.newListingAlerts ?? true,
-            marketingUpdates: data.user.notificationSettings.marketingUpdates ?? false,
-            accountAlerts: data.user.notificationSettings.accountAlerts ?? true,
+            emailNotifications: profileData.notificationSettings.emailNotifications ?? true,
+            newListingAlerts: profileData.notificationSettings.newListingAlerts ?? true,
+            marketingUpdates: profileData.notificationSettings.marketingUpdates ?? false,
+            accountAlerts: profileData.notificationSettings.accountAlerts ?? true,
           });
         }
       }
@@ -215,7 +231,7 @@ const UserProfile = () => {
       });
       setSavedListings(savedResponse.data);
       
-      return data.user;
+      return profileData;
     } catch (error) {
       console.error("Error refreshing user data:", error);
       setSnackbar({
@@ -343,14 +359,13 @@ const UserProfile = () => {
         formData.append("profileImage", profileData.profileImage);
   
         // Use the full URL
+        // Note: Don't set Content-Type header manually - axios will set it automatically with boundary
         const imageResponse = await axios.post(
           "http://localhost:4000/api/user/upload-profile-image", 
           formData, 
           {
-            headers: {
-              "Content-Type": "multipart/form-data",
-            },
             withCredentials: true,
+            // Let axios set Content-Type automatically for FormData
           }
         );
         
@@ -361,7 +376,11 @@ const UserProfile = () => {
           
           // Add cache-buster to force image refresh
           const cacheBuster = `?t=${Date.now()}`;
-          setPreviewImage(`${imageResponse.data.imagePath}${cacheBuster}`);
+          // Make sure to use the correct base URL if needed
+          const imagePath = imageResponse.data.imagePath.startsWith('http') 
+            ? imageResponse.data.imagePath 
+            : `http://localhost:4000${imageResponse.data.imagePath}`;
+          setPreviewImage(`${imagePath}${cacheBuster}`);
         }
       }
   
@@ -373,6 +392,7 @@ const UserProfile = () => {
       }));
       
       // Force a complete refresh from the server to synchronize all data
+      // This will fetch the latest profile data including the new imagePath
       await refreshUserData();
       
       // Show success message

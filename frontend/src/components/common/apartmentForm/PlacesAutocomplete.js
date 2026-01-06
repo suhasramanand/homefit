@@ -3,8 +3,6 @@ import { TextField, InputAdornment, CircularProgress } from "@mui/material";
 import LocationOnIcon from "@mui/icons-material/LocationOn";
 import {
     loadGoogleMapsApi,
-    geocodeAddress,
-    reverseGeocode,
   } from "../../map/GoogleMapsLoader";
 
 const PlacesAutocomplete = ({ onPlaceSelected, apiKey, initialValue = "" }) => {
@@ -58,7 +56,6 @@ const PlacesAutocomplete = ({ onPlaceSelected, apiKey, initialValue = "" }) => {
         const place = autocomplete.getPlace();
 
         if (!place.geometry) {
-          console.log("Returned place contains no geometry");
           return;
         }
 

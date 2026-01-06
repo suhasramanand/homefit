@@ -47,7 +47,7 @@ const Footer = () => {
               <Box
                 component="span"
                 sx={{
-                  color: theme.palette.mode === "light" ? "#2c3e50" : "#ffffff",
+                  color: theme.palette.text.primary,
                   fontWeight: 600,
                 }}
               >

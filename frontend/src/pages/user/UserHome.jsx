@@ -448,7 +448,7 @@ const UserHome = ({ onActionClick }) => {
                 <Avatar
                   sx={{
                     bgcolor: theme.palette.primary.main,
-                    color: "#fff",
+                    color: theme.palette.primary.contrastText,
                     width: 50,
                     height: 50,
                     mb: 2,
@@ -479,7 +479,7 @@ const UserHome = ({ onActionClick }) => {
                 <Avatar
                   sx={{
                     bgcolor: theme.palette.primary.main,
-                    color: "#fff",
+                    color: theme.palette.primary.contrastText,
                     width: 50,
                     height: 50,
                     mb: 2,
@@ -510,7 +510,7 @@ const UserHome = ({ onActionClick }) => {
                 <Avatar
                   sx={{
                     bgcolor: theme.palette.primary.main,
-                    color: "#fff",
+                    color: theme.palette.primary.contrastText,
                     width: 50,
                     height: 50,
                     mb: 2,
@@ -541,7 +541,7 @@ const UserHome = ({ onActionClick }) => {
                 <Avatar
                   sx={{
                     bgcolor: theme.palette.primary.main,
-                    color: "#fff",
+                    color: theme.palette.primary.contrastText,
                     width: 50,
                     height: 50,
                     mb: 2,

@@ -86,7 +86,9 @@ const BasicInfoStep = ({ formData, handleChange, errors }) => {
             type="date"
             name="moveInDate"
             label="Desired Move-in Date"
-            value={formData.moveInDate}
+            value={formData.moveInDate && formData.moveInDate.includes('T') 
+              ? formData.moveInDate.split('T')[0] 
+              : formData.moveInDate}
             onChange={handleChange}
             InputLabelProps={{ shrink: true }}
             error={Boolean(errors.moveInDate)}

@@ -29,9 +29,7 @@ const ProfileEditForm = ({
       sx={{
         p: 3,
         borderRadius: 2,
-        backgroundColor: isDarkMode
-          ? "rgba(255, 255, 255, 0.05)"
-          : "#fff",
+        backgroundColor: theme.palette.background.paper,
         border: isDarkMode
           ? "1px solid rgba(255, 255, 255, 0.1)"
           : "none",

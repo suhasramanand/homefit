@@ -4,7 +4,6 @@ import { useNavigate } from "react-router-dom";
 import {
   Box,
   Typography,
-  Grid,
   Paper,
   Button,
   Container,
@@ -24,6 +23,7 @@ import { loadGoogleMapsApi } from "../../components/map/GoogleMapsLoader";
 import InfoIcon from "@mui/icons-material/Info";
 import CloseIcon from "@mui/icons-material/Close";
 import IconButton from "@mui/material/IconButton";
+import { markPreferenceUpdated, clearMatchCache } from "../../utils/matchCache";
 
 // Form step labels
 const steps = ["Basic Info", "Location", "Budget & Features", "Amenities"];
@@ -114,10 +114,18 @@ const PreferenceForm = () => {
         if (response.data && response.data.preference) {
           const pref = response.data.preference;
           
+          // Format moveInDate for date input (convert ISO to YYYY-MM-DD)
+          let formattedMoveInDate = pref.moveInDate || '';
+          if (formattedMoveInDate && formattedMoveInDate.includes('T')) {
+            // Extract just the date part from ISO string
+            formattedMoveInDate = formattedMoveInDate.split('T')[0];
+          }
+          
           // Merge existing preferences with the default state
           setFormData(prevState => ({
             ...prevState,
             ...pref,
+            moveInDate: formattedMoveInDate, // Use formatted date
             // Initialize location preference if it exists
             locationPreference: pref.locationPreference || {
               center: [0, 0],
@@ -131,7 +139,10 @@ const PreferenceForm = () => {
           setShowDefaultsAlert(false);
         }
       } catch (error) {
-        console.error("Error fetching preferences:", error);
+        // 404 is expected for new users without preferences - don't log it
+        if (error.response?.status !== 404) {
+          console.error("Error fetching preferences:", error);
+        }
         // No preferences found, continue with defaults
         setIsNewUser(true);
         setShowDefaultsAlert(true);
@@ -251,8 +262,15 @@ const PreferenceForm = () => {
         { withCredentials: true }
       );
       
+      const prefId = response.data.preference._id;
+      
+      // Clear match cache when preferences are updated
+      clearMatchCache(prefId);
+      markPreferenceUpdated(prefId);
+      
       // Navigate to matches page with the new preference ID
-      navigate(`/matches/${response.data.preference._id}`);
+      // Add forceRefresh to trigger new match calculation
+      navigate(`/matches/${prefId}?forceRefresh=true`);
     } catch (error) {
       console.error("Error submitting preferences:", error);
       alert("Failed to submit preferences. Please try again.");

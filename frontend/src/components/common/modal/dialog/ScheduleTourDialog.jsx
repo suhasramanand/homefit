@@ -22,42 +22,7 @@ import {
 import { useSelector } from "react-redux";
 import axios from "axios";
 import dayjs from "dayjs";
-
-// Custom date picker that doesn't use MUI date pickers
-const SimpleDatePicker = ({ value, onChange, disablePast, error, helperText }) => {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  
-  // Format date to YYYY-MM-DD for the input
-  const formatDate = (date) => {
-    if (!date) return '';
-    return date.format ? date.format('YYYY-MM-DD') : dayjs(date).format('YYYY-MM-DD');
-  };
-
-  // Handler for date changes
-  const handleDateChange = (e) => {
-    const newDate = e.target.value ? dayjs(e.target.value) : null;
-    onChange(newDate);
-  };
-
-  // Calculate min date if disablePast is true
-  const minDate = disablePast ? formatDate(dayjs()) : undefined;
-
-  return (
-    <TextField
-      label="Preferred Date"
-      type="date"
-      value={formatDate(value)}
-      onChange={handleDateChange}
-      fullWidth
-      InputLabelProps={{ shrink: true }}
-      inputProps={{ min: minDate }}
-      error={error}
-      helperText={helperText}
-      required
-    />
-  );
-};
+import SimpleDatePicker from "../../../common/SimpleDatePicker";
 
 const ScheduleTourDialog = ({
   open,

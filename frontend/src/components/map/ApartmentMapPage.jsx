@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Container, Typography, Box, Paper, Grid, Button, TextField, InputAdornment, CircularProgress, Alert } from '@mui/material';
+import { useNavigate } from 'react-router-dom';
 import SearchIcon from '@mui/icons-material/Search';
 import LocationOnIcon from '@mui/icons-material/LocationOn';
 import MapIcon from '@mui/icons-material/Map';
@@ -8,6 +9,7 @@ import ApartmentMapView from '../../components/map/ApartmentMapView';
 import axios from 'axios';
 
 const ApartmentMapPage = () => {
+  const navigate = useNavigate();
   const [userLocation, setUserLocation] = useState(null);
   const [isLoadingLocation, setIsLoadingLocation] = useState(false);
   const [error, setError] = useState('');
@@ -166,24 +168,43 @@ const ApartmentMapPage = () => {
         )}
       </Paper>
       
-      {userLocation && (
-        <Box mb={2}>
-          <Alert severity="info" icon={<LocationOnIcon />}>
-            Showing apartments near {userLocation.lat.toFixed(4)}, {userLocation.lng.toFixed(4)}
-          </Alert>
-        </Box>
-      )}
-      
       <ApartmentMapView 
         userLocation={userLocation} 
         onError={handleMapError}
       />
       
+      {userLocation && (
+        <Box mt={2}>
+          <Alert severity="info" icon={<LocationOnIcon />}>
+            Showing apartments near your location ({userLocation.lat.toFixed(4)}, {userLocation.lng.toFixed(4)})
+          </Alert>
+        </Box>
+      )}
+      
       <Box display="flex" justifyContent="center" mt={4}>
         <Button
           variant="outlined"
           startIcon={<ViewListIcon />}
-          href="/matches"
+          onClick={async () => {
+            try {
+              const res = await axios.get(
+                "http://localhost:4000/api/user/preferences/latest",
+                { withCredentials: true }
+              );
+              const prefId = res.data.preference?._id;
+              if (prefId) {
+                navigate(`/matches/${prefId}`);
+              } else {
+                navigate("/preferences");
+              }
+            } catch (err) {
+              if (err.response?.status === 401) {
+                navigate("/login");
+              } else {
+                navigate("/preferences");
+              }
+            }
+          }}
           sx={{ mx: 1 }}
         >
           View as List

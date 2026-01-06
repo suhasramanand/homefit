@@ -168,10 +168,24 @@ const UserTours = () => {
   };
 
   // Navigate to apartment details
-  const viewApartmentDetails = (apartmentId) => {
-    // You'll need to implement this based on your app's routing
-    // For example, navigate to the matches page with the apartment highlighted
-    navigate(`/matches?apartment=${apartmentId}`);
+  const viewApartmentDetails = async (apartmentId) => {
+    try {
+      // Try to get the latest preference ID to navigate to matches
+      const res = await axios.get(
+        "http://localhost:4000/api/user/preferences/latest",
+        { withCredentials: true }
+      );
+      const prefId = res.data.preference?._id;
+      if (prefId) {
+        navigate(`/matches/${prefId}`);
+      } else {
+        // If no preferences, go to saved listings where they can see the apartment
+        navigate("/user/saved");
+      }
+    } catch (err) {
+      // If error, just go to saved listings
+      navigate("/user/saved");
+    }
   };
 
   if (loading) {

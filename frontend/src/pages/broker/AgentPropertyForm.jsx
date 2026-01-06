@@ -10,6 +10,10 @@ import {
   Slide,
   Backdrop,
   CircularProgress,
+  Stepper,
+  Step,
+  StepLabel,
+  Container,
 } from "@mui/material";
 import { styled } from "@mui/material/styles";
 import axios from "axios";
@@ -28,20 +32,28 @@ import SubmitSection from "../../components/common/apartmentForm/SubmitSection";
 import FeedbackModal from "../../components/common/apartmentForm/FeedbackModal";
 
 const FormContainer = styled(Paper)(({ theme }) => ({
-  maxWidth: 1000,
+  maxWidth: 1200,
   margin: "auto",
-  padding: theme.spacing(4),
-  borderRadius: 16,
+  padding: { xs: theme.spacing(4), sm: theme.spacing(5), md: theme.spacing(6) },
+  borderRadius: 24,
   backgroundColor: theme.palette.background.paper,
   boxShadow:
     theme.palette.mode === "light"
-      ? "0 4px 20px rgba(0,0,0,0.05)"
-      : "0 4px 20px rgba(0,0,0,0.2)",
+      ? "0 8px 32px rgba(0,0,0,0.08)"
+      : "0 8px 32px rgba(0,0,0,0.3)",
   border:
     theme.palette.mode === "dark"
-      ? "1px solid rgba(255, 255, 255, 0.05)"
+      ? "1px solid rgba(255, 255, 255, 0.08)"
       : "none",
 }));
+
+const HeaderSection = styled(Box)(({ theme }) => ({
+  textAlign: "center",
+  marginBottom: theme.spacing(5),
+  paddingBottom: theme.spacing(3),
+  borderBottom: `2px solid ${theme.palette.mode === "dark" ? "rgba(255, 255, 255, 0.1)" : "rgba(0, 0, 0, 0.08)"}`,
+}));
+
 
 const AgentApartmentForm = () => {
   const theme = useTheme();
@@ -79,6 +91,16 @@ const AgentApartmentForm = () => {
     message: "",
     severity: "info",
   });
+
+  // Form steps for progress indicator
+  const steps = [
+    "Basic Information",
+    "Location & Design",
+    "Features & Amenities",
+    "Images & Finalize",
+  ];
+  
+  const [activeStep, setActiveStep] = useState(0);
 
   // Initialize Google Maps API on component mount
   useEffect(() => {
@@ -343,17 +365,62 @@ const AgentApartmentForm = () => {
   };
 
   return (
-    <Box sx={{ my: 10, px: 2 }}>
+    <Container 
+      maxWidth="lg" 
+      sx={{ 
+        py: { xs: 4, md: 6 },
+        px: { xs: 3, sm: 4, md: 5 },
+      }}
+    >
       <FormContainer elevation={isDarkMode ? 2 : 3}>
-        <Typography
-          variant="h5"
-          fontWeight={600}
-          color={primaryColor}
-          textAlign="center"
-          gutterBottom
-        >
-          List a New Apartment
-        </Typography>
+        <HeaderSection>
+          <Typography
+            variant="h4"
+            fontWeight={700}
+            color="text.primary"
+            gutterBottom
+            sx={{ mb: 2 }}
+          >
+            List Your Apartment
+          </Typography>
+          <Typography
+            variant="body1"
+            color="text.secondary"
+            sx={{ mb: 3, maxWidth: 600, mx: "auto" }}
+          >
+            Fill out the form below to create your listing. All fields marked with * are required.
+          </Typography>
+          
+          {/* Progress Stepper */}
+          <Stepper 
+            activeStep={activeStep} 
+            alternativeLabel
+            sx={{ 
+              mt: 3,
+              "& .MuiStepLabel-root": {
+                "& .MuiStepLabel-label": {
+                  fontSize: "0.75rem",
+                  fontWeight: 500,
+                },
+              },
+              "& .MuiStepIcon-root": {
+                color: isDarkMode ? "rgba(255, 255, 255, 0.2)" : "rgba(0, 0, 0, 0.2)",
+                "&.Mui-active": {
+                  color: primaryColor,
+                },
+                "&.Mui-completed": {
+                  color: primaryColor,
+                },
+              },
+            }}
+          >
+            {steps.map((label) => (
+              <Step key={label}>
+                <StepLabel>{label}</StepLabel>
+              </Step>
+            ))}
+          </Stepper>
+        </HeaderSection>
 
         <form onSubmit={handleSubmit} encType="multipart/form-data">
           {/* Form Groups Component */}
@@ -371,6 +438,8 @@ const AgentApartmentForm = () => {
             handlePlaceSelected={handlePlaceSelected}
             googleMapsApiKey={googleMapsApiKey}
             geocodingError={geocodingError}
+            isDarkMode={isDarkMode}
+            primaryColor={primaryColor}
           />
 
           {/* Amenities Section Component */}
@@ -429,12 +498,12 @@ const AgentApartmentForm = () => {
 
       {/* Backdrop for geolocation loading */}
       <Backdrop
-        sx={{ color: '#fff', zIndex: (theme) => theme.zIndex.drawer + 1 }}
+        sx={{ color: (theme) => theme.palette.primary.contrastText, zIndex: (theme) => theme.zIndex.drawer + 1 }}
         open={isGeocoding}
       >
         <CircularProgress color="inherit" />
       </Backdrop>
-    </Box>
+    </Container>
   );
 };
 

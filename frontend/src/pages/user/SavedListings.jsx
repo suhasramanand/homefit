@@ -13,18 +13,18 @@ import {
   Button,
   CardMedia,
   MobileStepper,
-  Modal
 } from "@mui/material";
 import FavoriteIcon from "@mui/icons-material/Favorite";
 import FavoriteBorderIcon from "@mui/icons-material/FavoriteBorder";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import LocationOnIcon from "@mui/icons-material/LocationOn";
 import AccessTimeIcon from "@mui/icons-material/AccessTime";
-import CloseIcon from "@mui/icons-material/Close";
 import axios from "axios";
 import dayjs from "dayjs";
 import { useNavigate } from "react-router-dom";
 import LoadingMessage from "../../components/common/LoadingMessage";
+import ViewApartmentModal from "../../components/common/modal/ViewApartmentModal";
+import { formatImageUrl, handleImageError } from "../../utils/imageUtils";
 
 const SavedListings = () => {
   const [saved, setSaved] = useState([]);
@@ -104,16 +104,6 @@ const SavedListings = () => {
     );
   };
 
-  // Helper function to properly format image URLs
-  const formatImageUrl = (imagePath) => {
-    if (!imagePath) return "http://localhost:4000/images/no-image.png";
-    
-    // If it's already a full URL, return it as is
-    if (imagePath.startsWith('http')) return imagePath;
-    
-    // Otherwise, prepend the base URL
-    return `http://localhost:4000${imagePath.startsWith('/') ? imagePath : `/${imagePath}`}`;
-  };
 
   return (
     <Box sx={{ maxWidth: 1200, mx: "auto", p: { xs: 2, md: 4 } }}>
@@ -193,7 +183,7 @@ const SavedListings = () => {
                     <IconButton
                       onClick={() => handleSaveToggle(apt._id)}
                       sx={{
-                        backgroundColor: theme.palette.mode === 'light' ? "white" : "#1e1e1e",
+                        backgroundColor: theme.palette.background.paper,
                         boxShadow: "0 2px 8px rgba(0, 0, 0, 0.1)",
                         "&:hover": {
                           backgroundColor: theme.palette.mode === 'light' ? "#f9fafb" : "#333",
@@ -218,9 +208,7 @@ const SavedListings = () => {
                           height: { xs: 200, md: "100%" },
                           objectFit: "cover",
                         }}
-                        onError={(e) => {
-                          e.target.src = "http://localhost:4000/images/no-image.png";
-                        }}
+                        onError={handleImageError}
                       />
                       {gallery.length > 1 && (
                         <MobileStepper
@@ -370,11 +358,8 @@ const SavedListings = () => {
                             },
                           }}
                           onClick={() => {
-                            console.log("View Apartment button clicked");
-                            console.log("Apartment data:", apt);
                             setSelectedApartment(apt);
                             setModalOpen(true);
-                            console.log("Modal should be open now:", true);
                           }}
                         >
                           View Apartment
@@ -389,89 +374,17 @@ const SavedListings = () => {
         </Grid>
       )}
       
-      {/* Simple modal for apartment details */}
-      <Modal
-        open={modalOpen}
-        onClose={() => {
-          console.log("Closing modal");
-          setModalOpen(false);
-        }}
-      >
-        <Box sx={{ 
-          position: 'absolute', 
-          top: '50%', 
-          left: '50%', 
-          transform: 'translate(-50%, -50%)',
-          width: { xs: '90%', sm: 600 },
-          maxHeight: '90vh',
-          overflow: 'auto',
-          bgcolor: 'background.paper',
-          borderRadius: 2,
-          boxShadow: 24,
-          p: 4
-        }}>
-          {selectedApartment && (
-            <>
-              <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
-                <Typography variant="h5" component="h2" fontWeight="bold">
-                  {selectedApartment.bedrooms} BHK in {selectedApartment.neighborhood}
-                </Typography>
-                <IconButton onClick={() => setModalOpen(false)}>
-                  <CloseIcon />
-                </IconButton>
-              </Box>
-              
-              <CardMedia
-                component="img"
-                image={formatImageUrl(selectedApartment.imageUrls?.[0] || selectedApartment.imageUrl)}
-                alt="Apartment"
-                sx={{ 
-                  width: '100%', 
-                  height: 300, 
-                  objectFit: 'cover',
-                  borderRadius: 1,
-                  mb: 2
-                }}
-              />
-              
-              <Typography variant="h5" color="primary" fontWeight="bold" gutterBottom>
-                ${selectedApartment.price?.toLocaleString()}/month
-              </Typography>
-              
-              <Typography variant="body1" paragraph>
-                <LocationOnIcon fontSize="small" sx={{ verticalAlign: 'middle', mr: 1 }} />
-                {selectedApartment.neighborhood}
-              </Typography>
-              
-              <Box display="flex" flexWrap="wrap" gap={1} my={2}>
-                <Chip label={`${selectedApartment.bedrooms} Bedroom${selectedApartment.bedrooms > 1 ? 's' : ''}`} />
-                <Chip label={`${selectedApartment.bathrooms || 1} Bathroom${selectedApartment.bathrooms > 1 ? 's' : ''}`} />
-                <Chip label={selectedApartment.furnishedStatus || "Semi-Furnished"} />
-              </Box>
-              
-              <Typography variant="body1" paragraph>
-                This {selectedApartment.bedrooms} BHK apartment in {selectedApartment.neighborhood} is available for rent.
-                It features {selectedApartment.bathrooms || 1} bathroom{selectedApartment.bathrooms > 1 ? 's' : ''} and is {selectedApartment.furnishedStatus || "semi-furnished"}.
-              </Typography>
-              
-              <Button
-                variant="contained"
-                fullWidth
-                sx={{ 
-                  mt: 2, 
-                  bgcolor: primaryColor,
-                  "&:hover": {
-                    bgcolor: "#009973",
-                  }
-                }}
-                onClick={() => setModalOpen(false)}
-              >
-                Close
-              </Button>
-            </>
-          )}
-        </Box>
-      </Modal>
+      {/* Use consistent ViewApartmentModal */}
+      {selectedApartment && (
+        <ViewApartmentModal
+          open={modalOpen}
+          onClose={() => {
+            setModalOpen(false);
+            setSelectedApartment(null);
+          }}
+          apartment={selectedApartment}
+        />
+      )}
     </Box>
   );
 };

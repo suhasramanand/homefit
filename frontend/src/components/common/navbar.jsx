@@ -10,6 +10,7 @@ import {
   List,
   ListItem,
   ListItemButton,
+  ListItemIcon,
   ListItemText,
   Divider,
   useMediaQuery,
@@ -18,6 +19,8 @@ import {
   MenuItem,
 } from "@mui/material";
 import MenuIcon from "@mui/icons-material/Menu";
+import Brightness4Icon from "@mui/icons-material/Brightness4";
+import Brightness7Icon from "@mui/icons-material/Brightness7";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useSelector, useDispatch } from "react-redux";
 import axios from "axios";
@@ -34,7 +37,7 @@ const Navbar = () => {
   
   // Get theme and color mode
   const theme = useTheme();
-  const { mode } = useColorMode();
+  const { mode, toggleColorMode } = useColorMode();
   
   const isBroker = user?.type === "broker";
   const isUser = user?.type === "user";
@@ -45,6 +48,7 @@ const Navbar = () => {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [brokerMenuAnchorEl, setBrokerMenuAnchorEl] = useState(null);
   const [adminMenuAnchorEl, setAdminMenuAnchorEl] = useState(null);
+  const [isSpinning, setIsSpinning] = useState(false);
 
   if (["/login", "/signup"].includes(location.pathname)) return null;
 
@@ -60,20 +64,33 @@ const Navbar = () => {
         }
       );
       const prefId = res.data.preference?._id;
-      if (prefId) navigate(`/matches/${prefId}`);
-      else alert("You haven't submitted any preferences yet.");
+      if (prefId) {
+        navigate(`/matches/${prefId}`);
+      } else {
+        navigate("/preferences");
+      }
     } catch (err) {
-      if (err.response?.status === 404) {
-        alert("No preferences found. Please fill out your preferences first.");
+      // 401 means session expired - redirect to login
+      if (err.response?.status === 401) {
+        navigate("/login", {
+          state: {
+            from: location.pathname,
+            message: "Your session has expired. Please log in again.",
+          },
+        });
+      } else if (err.response?.status === 404) {
+        // 404 is expected for users without preferences
         navigate("/preferences");
       } else {
+        // Other errors - still try to navigate to preferences
         console.error("Could not load recommendations", err);
-        alert("Something went wrong.");
+        navigate("/preferences");
       }
     }
   };
 
-  const commonLinks = [
+  // Public links (shown when not logged in)
+  const publicLinks = [
     { label: "Home", to: "/" },
     { label: "About", to: "/about" },
   ];
@@ -84,8 +101,12 @@ const Navbar = () => {
       dropdownItems: [
         { label: "Dashboard", to: "/broker/dashboard" },
         { label: "My Listings", to: "/broker/listings" },
+        { label: "Add Listing", to: "/broker/add-listing" },
         { label: "Inquiries", to: "/broker/inquiries" },
-        { label: "Add Listing", to: "/broker/add-listing" }
+        { label: "Tours", to: "/broker/tours" },
+        { label: "Analytics", to: "/broker/analytics" },
+        { label: "Profile", to: "/broker/profile" },
+        { label: "Settings", to: "/broker/settings" }
       ]
     },
   ];
@@ -97,28 +118,38 @@ const Navbar = () => {
         { label: "Dashboard", to: "/admin/dashboard" },
         { label: "Manage Brokers", to: "/admin/brokers" },
         { label: "Manage Users", to: "/admin/users" },
-        { label: "Review Listings", to: "/admin/listings" }
+        { label: "Review Listings", to: "/admin/listings" },
+        { label: "Settings", to: "/admin/settings" }
       ]
     },
   ];
 
   const userLinks = [
-    { label: "Find Apartments", to: "/preferences" },
+    { label: "Get Matched", to: "/preferences" },
+    { label: "My Recommendations", to: null },
     { label: "Saved Listings", to: "/user/saved" },
-    { label: "Recommendations", to: null },
+    { label: "My Tours", to: "/user/tours" },
+    { label: "Map View", to: "/map" },
   ];
 
-  const allLinks = [
-    ...commonLinks,
-    ...(isAdmin ? adminLinks : []),
-    ...(isBroker ? brokerLinks : []),
-    ...(isUser ? userLinks : []),
-  ];
+  // Conditionally build links based on login status
+  const allLinks = isLoggedIn
+    ? [
+        // Logged in: Show Home + role-specific links
+        { label: "Home", to: "/" },
+        ...(isAdmin ? adminLinks : []),
+        ...(isBroker ? brokerLinks : []),
+        ...(isUser ? userLinks : []),
+      ]
+    : [
+        // Not logged in: Show public links
+        ...publicLinks,
+      ];
 
   const handleLinkClick = (label, to) => {
-    if (label === "Recommendations") {
+    if (label === "My Recommendations" || label === "Recommendations") {
       goToRecommendations();
-    } else {
+    } else if (to) {
       navigate(to);
     }
   };
@@ -147,6 +178,12 @@ const Navbar = () => {
   const handleAdminMenuItemClick = (to) => {
     navigate(to);
     handleAdminMenuClose();
+  };
+
+  const handleToggleTheme = () => {
+    setIsSpinning(true);
+    toggleColorMode();
+    setTimeout(() => setIsSpinning(false), 500);
   };
 
   // Use the theme's colors
@@ -291,7 +328,48 @@ const Navbar = () => {
         )}
 
         {!isMobile && (
-          <Box display="flex" alignItems="center" gap={2}>
+          <Box display="flex" alignItems="center" gap={1}>
+            {/* Dark Mode Toggle */}
+            <IconButton
+              onClick={handleToggleTheme}
+              sx={{
+                color: theme.palette.text.primary,
+                "&:hover": {
+                  backgroundColor: mode === 'light' ? "rgba(0, 0, 0, 0.04)" : "rgba(255, 255, 255, 0.08)",
+                },
+              }}
+            >
+              <Box
+                sx={{
+                  width: 24,
+                  height: 24,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  position: "relative",
+                  transformOrigin: "center",
+                }}
+              >
+                <Box
+                  sx={{
+                    position: "absolute",
+                    animation: isSpinning ? "spin 0.5s linear" : "none",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    width: "100%",
+                    height: "100%",
+                  }}
+                >
+                  {theme.palette.mode === "dark" ? (
+                    <Brightness7Icon fontSize="small" />
+                  ) : (
+                    <Brightness4Icon fontSize="small" />
+                  )}
+                </Box>
+              </Box>
+            </IconButton>
+            
             {isLoggedIn ? (
               <>
                 <Typography
@@ -337,7 +415,22 @@ const Navbar = () => {
                 role="presentation"
               >
                 <List>
-                  {commonLinks.map(({ label, to }) => (
+                  {/* Home link - show for all users */}
+                  <ListItem disablePadding>
+                    <ListItemButton
+                      selected={location.pathname === "/"}
+                      onClick={() => {
+                        navigate("/");
+                        setDrawerOpen(false);
+                      }}
+                      sx={location.pathname === "/" ? activeDrawerStyle : {}}
+                    >
+                      <ListItemText primary="Home" />
+                    </ListItemButton>
+                  </ListItem>
+                  
+                  {/* Public links - only show when not logged in */}
+                  {!isLoggedIn && publicLinks.filter(link => link.label !== "Home").map(({ label, to }) => (
                     <ListItem key={label} disablePadding>
                       <ListItemButton
                         selected={to === location.pathname}
@@ -408,6 +501,18 @@ const Navbar = () => {
                           <ListItemText primary="Review Listings" />
                         </ListItemButton>
                       </ListItem>
+                      <ListItem disablePadding>
+                        <ListItemButton
+                          selected={location.pathname === "/admin/settings"}
+                          onClick={() => {
+                            navigate("/admin/settings");
+                            setDrawerOpen(false);
+                          }}
+                          sx={location.pathname === "/admin/settings" ? activeDrawerStyle : {}}
+                        >
+                          <ListItemText primary="Settings" />
+                        </ListItemButton>
+                      </ListItem>
                     </>
                   )}
                   
@@ -445,6 +550,18 @@ const Navbar = () => {
                       </ListItem>
                       <ListItem disablePadding>
                         <ListItemButton
+                          selected={location.pathname === "/broker/add-listing" || location.pathname === "/list-apartment"}
+                          onClick={() => {
+                            navigate("/broker/add-listing");
+                            setDrawerOpen(false);
+                          }}
+                          sx={(location.pathname === "/broker/add-listing" || location.pathname === "/list-apartment") ? activeDrawerStyle : {}}
+                        >
+                          <ListItemText primary="Add Listing" />
+                        </ListItemButton>
+                      </ListItem>
+                      <ListItem disablePadding>
+                        <ListItemButton
                           selected={location.pathname === "/broker/inquiries"}
                           onClick={() => {
                             navigate("/broker/inquiries");
@@ -457,14 +574,50 @@ const Navbar = () => {
                       </ListItem>
                       <ListItem disablePadding>
                         <ListItemButton
-                          selected={location.pathname === "/broker/add-listing" || location.pathname === "/list-apartment"}
+                          selected={location.pathname === "/broker/tours"}
                           onClick={() => {
-                            navigate("/broker/add-listing");
+                            navigate("/broker/tours");
                             setDrawerOpen(false);
                           }}
-                          sx={(location.pathname === "/broker/add-listing" || location.pathname === "/list-apartment") ? activeDrawerStyle : {}}
+                          sx={location.pathname === "/broker/tours" ? activeDrawerStyle : {}}
                         >
-                          <ListItemText primary="Add Listing" />
+                          <ListItemText primary="Tours" />
+                        </ListItemButton>
+                      </ListItem>
+                      <ListItem disablePadding>
+                        <ListItemButton
+                          selected={location.pathname === "/broker/analytics"}
+                          onClick={() => {
+                            navigate("/broker/analytics");
+                            setDrawerOpen(false);
+                          }}
+                          sx={location.pathname === "/broker/analytics" ? activeDrawerStyle : {}}
+                        >
+                          <ListItemText primary="Analytics" />
+                        </ListItemButton>
+                      </ListItem>
+                      <ListItem disablePadding>
+                        <ListItemButton
+                          selected={location.pathname === "/broker/profile"}
+                          onClick={() => {
+                            navigate("/broker/profile");
+                            setDrawerOpen(false);
+                          }}
+                          sx={location.pathname === "/broker/profile" ? activeDrawerStyle : {}}
+                        >
+                          <ListItemText primary="Profile" />
+                        </ListItemButton>
+                      </ListItem>
+                      <ListItem disablePadding>
+                        <ListItemButton
+                          selected={location.pathname === "/broker/settings"}
+                          onClick={() => {
+                            navigate("/broker/settings");
+                            setDrawerOpen(false);
+                          }}
+                          sx={location.pathname === "/broker/settings" ? activeDrawerStyle : {}}
+                        >
+                          <ListItemText primary="Settings" />
                         </ListItemButton>
                       </ListItem>
                     </>
@@ -482,7 +635,17 @@ const Navbar = () => {
                           }}
                           sx={location.pathname === "/preferences" ? activeDrawerStyle : {}}
                         >
-                          <ListItemText primary="Find Apartments" />
+                          <ListItemText primary="Get Matched" />
+                        </ListItemButton>
+                      </ListItem>
+                      <ListItem disablePadding>
+                        <ListItemButton
+                          onClick={() => {
+                            goToRecommendations();
+                            setDrawerOpen(false);
+                          }}
+                        >
+                          <ListItemText primary="My Recommendations" />
                         </ListItemButton>
                       </ListItem>
                       <ListItem disablePadding>
@@ -499,12 +662,26 @@ const Navbar = () => {
                       </ListItem>
                       <ListItem disablePadding>
                         <ListItemButton
+                          selected={location.pathname === "/user/tours"}
                           onClick={() => {
-                            goToRecommendations();
+                            navigate("/user/tours");
                             setDrawerOpen(false);
                           }}
+                          sx={location.pathname === "/user/tours" ? activeDrawerStyle : {}}
                         >
-                          <ListItemText primary="Recommendations" />
+                          <ListItemText primary="My Tours" />
+                        </ListItemButton>
+                      </ListItem>
+                      <ListItem disablePadding>
+                        <ListItemButton
+                          selected={location.pathname === "/map"}
+                          onClick={() => {
+                            navigate("/map");
+                            setDrawerOpen(false);
+                          }}
+                          sx={location.pathname === "/map" ? activeDrawerStyle : {}}
+                        >
+                          <ListItemText primary="Map View" />
                         </ListItemButton>
                       </ListItem>
                     </>
@@ -512,6 +689,54 @@ const Navbar = () => {
                 </List>
                 <Divider />
                 <Box px={2} py={1}>
+                  {/* Dark Mode Toggle in Mobile Drawer */}
+                  <ListItem disablePadding sx={{ mb: 1 }}>
+                    <ListItemButton
+                      onClick={handleToggleTheme}
+                      sx={{
+                        borderRadius: 1,
+                        "&:hover": {
+                          backgroundColor: mode === 'light' ? "rgba(0, 0, 0, 0.04)" : "rgba(255, 255, 255, 0.08)",
+                        },
+                      }}
+                    >
+                      <ListItemIcon>
+                        <Box
+                          sx={{
+                            width: 24,
+                            height: 24,
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            position: "relative",
+                            transformOrigin: "center",
+                          }}
+                        >
+                          <Box
+                            sx={{
+                              position: "absolute",
+                              animation: isSpinning ? "spin 0.5s linear" : "none",
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              width: "100%",
+                              height: "100%",
+                            }}
+                          >
+                            {theme.palette.mode === "dark" ? (
+                              <Brightness7Icon fontSize="small" />
+                            ) : (
+                              <Brightness4Icon fontSize="small" />
+                            )}
+                          </Box>
+                        </Box>
+                      </ListItemIcon>
+                      <ListItemText 
+                        primary={theme.palette.mode === "dark" ? "Light Mode" : "Dark Mode"} 
+                      />
+                    </ListItemButton>
+                  </ListItem>
+                  
                   {isLoggedIn ? (
                     <>
                       <Typography variant="body2" color="text.secondary" mb={1}>
@@ -583,6 +808,16 @@ const Navbar = () => {
           </>
         )}
       </Toolbar>
+      
+      {/* Spin animation for theme toggle */}
+      <style>
+        {`
+          @keyframes spin {
+            from { transform: rotate(0deg); }
+            to   { transform: rotate(360deg); }
+          }
+        `}
+      </style>
     </AppBar>
   );
 };

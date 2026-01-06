@@ -281,7 +281,7 @@ const AdminLayout = () => {
             borderBottom: '1px solid',
             borderColor: isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.06)',
             zIndex: (theme) => theme.zIndex.drawer + 1,
-            backgroundColor: isDarkMode ? theme.palette.background.paper : '#fff',
+            backgroundColor: theme.palette.background.paper,
           }}
         >
           <Toolbar>

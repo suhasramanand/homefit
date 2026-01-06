@@ -4,6 +4,7 @@ import {
   Routes,
   Route,
   useLocation,
+  Navigate,
 } from "react-router-dom";
 import { CssBaseline, Box, CircularProgress } from "@mui/material";
 import { Provider, useDispatch, useSelector } from "react-redux";
@@ -317,6 +318,15 @@ function AppRoutes() {
           }
         />
         <Route path="/matches/:prefId" element={<MatchResults />} />
+        {/* Redirect /matches to preferences if no prefId */}
+        <Route 
+          path="/matches" 
+          element={
+            <UserRoute>
+              <Navigate to="/preferences" replace />
+            </UserRoute>
+          } 
+        />
         {/* Common */}
         <Route path="/about" element={<About />} />
         <Route path="/contact" element={<Contact />} />

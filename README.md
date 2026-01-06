@@ -25,6 +25,7 @@
 - 🔍 View/manage all brokers, users, and listings
 - ✅ Approve or reject broker registrations
 - 🧾 Download and view license documents
+- System settings 
 
 ---
 

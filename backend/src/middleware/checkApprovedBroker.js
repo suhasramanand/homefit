@@ -1,4 +1,5 @@
 const User = require("../models/User");
+const logger = require('../utils/logger');
 
 const checkApprovedBroker = async (req, res, next) => {
   try {
@@ -20,7 +21,7 @@ const checkApprovedBroker = async (req, res, next) => {
 
     next();
   } catch (error) {
-    console.error("Error in checkApprovedBroker middleware:", error);
+    logger.error("Error in checkApprovedBroker middleware:", error);
     res.status(500).json({ message: "Internal server error" });
   }
 };

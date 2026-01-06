@@ -517,7 +517,7 @@ const BrokerRegistration = () => {
           borderRadius: 2,
           p: 4,
           textAlign: "center",
-          backgroundColor: isDarkMode ? theme.palette.background.paper : "#fff",
+          backgroundColor: theme.palette.background.paper,
         }}
       >
         <CheckCircleOutlineIcon
@@ -592,7 +592,7 @@ const BrokerRegistration = () => {
         elevation={2}
         sx={{
           borderRadius: 2,
-          backgroundColor: isDarkMode ? "rgba(255, 255, 255, 0.05)" : "#fff",
+          backgroundColor: theme.palette.background.paper,
           border: isDarkMode ? "1px solid rgba(255, 255, 255, 0.1)" : "none",
           mb: 4,
         }}

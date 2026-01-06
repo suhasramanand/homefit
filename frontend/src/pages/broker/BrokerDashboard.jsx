@@ -49,7 +49,7 @@ const StatCard = ({ icon, count, label, backgroundColor }) => {
         alignItems: 'center',
         justifyContent: 'center',
         height: '100%',
-        backgroundColor: isDarkMode ? 'rgba(255, 255, 255, 0.05)' : '#fff',
+        backgroundColor: theme.palette.background.paper,
         border: isDarkMode ? '1px solid rgba(255, 255, 255, 0.1)' : 'none',
         transition: 'transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out',
         '&:hover': {
@@ -238,7 +238,7 @@ const refreshApprovalStatus = async () => {
           sx={{
             p: 4,
             borderRadius: 2,
-            backgroundColor: isDarkMode ? 'rgba(255, 255, 255, 0.05)' : '#fff',
+            backgroundColor: theme.palette.background.paper,
             border: isDarkMode ? '1px solid rgba(255, 255, 255, 0.1)' : 'none',
           }}
         >
@@ -396,7 +396,7 @@ const refreshApprovalStatus = async () => {
             sx={{
               borderRadius: 2,
               height: '100%',
-              backgroundColor: isDarkMode ? 'rgba(255, 255, 255, 0.05)' : '#fff',
+              backgroundColor: theme.palette.background.paper,
               border: isDarkMode ? '1px solid rgba(255, 255, 255, 0.1)' : 'none',
               transition: 'transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out',
               '&:hover': {
@@ -475,7 +475,7 @@ const refreshApprovalStatus = async () => {
       elevation={2}
       sx={{
         borderRadius: 2,
-        backgroundColor: isDarkMode ? 'rgba(255, 255, 255, 0.05)' : '#fff',
+        backgroundColor: theme.palette.background.paper,
         border: isDarkMode ? '1px solid rgba(255, 255, 255, 0.1)' : 'none',
         transition: 'transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out',
         '&:hover': {
@@ -527,7 +527,7 @@ const refreshApprovalStatus = async () => {
             sx={{
               borderRadius: 2,
               height: '100%',
-              backgroundColor: isDarkMode ? 'rgba(255, 255, 255, 0.05)' : '#fff',
+              backgroundColor: theme.palette.background.paper,
               border: isDarkMode ? '1px solid rgba(255, 255, 255, 0.1)' : 'none',
               transition: 'transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out',
               '&:hover': {
