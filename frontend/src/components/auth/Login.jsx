@@ -15,7 +15,7 @@ import {
 import { useDispatch } from 'react-redux';
 import { loginSuccess } from '../../redux/userSlice';
 import { useNavigate, Link as RouterLink } from 'react-router-dom';
-import axios from 'axios';
+import axios from '../../axiosConfig';
 import GoogleLoginButton from "../common/buttons/GoogleLoginButton";
 import Visibility from '@mui/icons-material/Visibility';
 import VisibilityOff from '@mui/icons-material/VisibilityOff';
@@ -149,7 +149,7 @@ const Login = () => {
   const fetchCompleteUserProfile = async () => {
     try {
       // This is the same API call that UserProfile uses to refresh data
-      const sessionRes = await axios.get('/api/user/session', {
+      const sessionRes = await axios.get('/user/session', {
         withCredentials: true
       });
       
@@ -173,7 +173,7 @@ const Login = () => {
     
     try {
       // Regular login API call (works with both real and mock API)
-      const res = await axios.post('/api/user/login', 
+      const res = await axios.post('/user/login', 
         { email, password }, 
         { withCredentials: true }
       );
@@ -184,7 +184,7 @@ const Login = () => {
       if (userData && userData.type === 'broker') {
         try {
           // Make an additional API call to get broker-specific data
-          const brokerRes = await axios.get('http://localhost:4000/api/broker/me', {
+          const brokerRes = await axios.get('/broker/me', {
             withCredentials: true
           });
           
