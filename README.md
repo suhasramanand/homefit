@@ -2,6 +2,19 @@
 
 **HomeFit** is a full-stack web application that connects renters with apartment listings while offering an internal broker and admin management system. The platform supports listing management, broker registration and approval workflows, user preferences, and smart apartment matching.
 
+## Tech Stack
+
+![React](https://img.shields.io/badge/React-19.0.0-61DAFB?logo=react&logoColor=white)
+![Node.js](https://img.shields.io/badge/Node.js-Express-339933?logo=node.js&logoColor=white)
+![MongoDB](https://img.shields.io/badge/MongoDB-47A248?logo=mongodb&logoColor=white)
+![Material-UI](https://img.shields.io/badge/Material--UI-6.4.8-007FFF?logo=mui&logoColor=white)
+![Redux](https://img.shields.io/badge/Redux-2.6.1-764ABC?logo=redux&logoColor=white)
+![Express](https://img.shields.io/badge/Express-4.18.2-000000?logo=express&logoColor=white)
+![Mongoose](https://img.shields.io/badge/Mongoose-7.5.0-880000?logo=mongoose&logoColor=white)
+![Redis](https://img.shields.io/badge/Redis-4.7.0-DC382D?logo=redis&logoColor=white)
+![Groq API](https://img.shields.io/badge/Groq-AI-FF6B6B?logo=openai&logoColor=white)
+![Google Maps](https://img.shields.io/badge/Google_Maps-API-4285F4?logo=googlemaps&logoColor=white)
+
 ---
 
 ## Features
@@ -28,12 +41,6 @@
 - System settings 
 
 ---
-
-## Tech Stack
-
-| Frontend              | Backend              | Database       | Miscellaneous              |
-|----------------------|----------------------|----------------|----------------------------|
-| React + MUI + Redux  | Express.js (Node.js) | MongoDB        | Multer (file upload), bcrypt, Axios, Groq API |
 
 ---
 
