@@ -6,7 +6,7 @@
 const axios = require('axios');
 const logger = require('../../utils/logger');
 
-const MBTA_API_KEY = process.env.MBTA_API_KEY || 'REPLACED_API_KEY';
+const MBTA_API_KEY = process.env.MBTA_API_KEY;
 const MBTA_BASE_URL = 'https://api-v3.mbta.com';
 
 /**
