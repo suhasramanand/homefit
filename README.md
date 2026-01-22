@@ -157,18 +157,6 @@ CRUD operations on listings (broker-only)
 
 4. Mobile app version (React Native)
 
-## 👨‍👩‍👧‍👦 Contributors
-
-| Name    | Contribution (%) | Area of Focus                                     |
-|---------|------------------|---------------------------------------------------|
-| Suhas   | 40%              | Full-stack architecture, broker system, Groq API  |
-| Varun   | 20%              | Admin dashboard, broker approval system           |
-| Prerana | 15%              | Frontend styling, registration flows              |
-| Manasa  | 15%              | Inquiry system, backend testing                   |
-| Rajat   | 10%              | Documentation, helper utilities, deployment setup |
-
-
-
 📸 Screenshots
 
 
