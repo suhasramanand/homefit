@@ -157,12 +157,4 @@ CRUD operations on listings (broker-only)
 
 4. Mobile app version (React Native)
 
-📸 Screenshots
-
-
-
-
-
-
-
 
