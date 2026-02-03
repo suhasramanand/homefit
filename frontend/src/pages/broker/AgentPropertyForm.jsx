@@ -49,7 +49,7 @@ const AgentApartmentForm = () => {
   const isDarkMode = theme.palette.mode === "dark";
 
   // Replace with your actual Google Maps API key
-  const googleMapsApiKey = process.env.REACT_APP_GOOGLE_MAPS_API_KEY;
+  const googleMapsApiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
 
   const [formData, setFormData] = useState({
     brokerEmail: "",

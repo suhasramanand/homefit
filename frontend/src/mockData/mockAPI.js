@@ -191,7 +191,7 @@ export default function setupMockAPI(axiosInstance) {
       }
       
       // For other errors in mock mode, return empty data
-      if (process.env.REACT_APP_USE_MOCK === 'true' && !error.response) {
+      if (import.meta.env.VITE_USE_MOCK === 'true' && !error.response) {
         console.warn('Mock mode: Request failed, returning empty data:', error.config?.url);
         return Promise.resolve({
           data: [],

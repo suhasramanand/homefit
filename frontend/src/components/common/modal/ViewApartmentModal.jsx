@@ -218,7 +218,7 @@ const ViewApartmentModal = ({ open, onClose, apartment }) => {
 
     try {
       // Load Google Maps API
-      await loadGoogleMapsApi(process.env.REACT_APP_GOOGLE_MAPS_API_KEY);
+      await loadGoogleMapsApi(import.meta.env.VITE_GOOGLE_MAPS_API_KEY);
 
       // Check if the Google Maps API is loaded
       if (!window.google || !window.google.maps) {

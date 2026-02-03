@@ -29,7 +29,7 @@ import IconButton from "@mui/material/IconButton";
 const steps = ["Basic Info", "Location", "Budget & Features", "Amenities"];
 
 // Google Maps API Key
-const GOOGLE_MAPS_API_KEY = process.env.REACT_APP_GOOGLE_MAPS_API_KEY;
+const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
 
 // Styled components
 const FormContainer = styled(Paper)(({ theme }) => ({

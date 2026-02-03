@@ -63,7 +63,7 @@ const ApartmentMapView = ({ userLocation = null, initialCenter = { lat: 40.7128,
   
   // Load Google Maps API with useLoadScript hook
   const { isLoaded, loadError } = useLoadScript({
-    googleMapsApiKey: process.env.REACT_APP_GOOGLE_MAPS_API_KEY,
+    googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY,
     libraries
   });
   

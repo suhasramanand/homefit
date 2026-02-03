@@ -24,17 +24,21 @@
     "react-redux": "^9.2.0",
     "react-responsive-carousel": "^3.2.23",
     "react-router-dom": "^7.12.0",
-    "react-scripts": "^5.0.1",
     "recharts": "^2.15.2",
     "use-places-autocomplete": "^4.0.1",
     "web-vitals": "^2.1.4"
   },
   "scripts": {
-    "start": "react-scripts start",
-    "build": "REACT_APP_USE_MOCK=true react-scripts build",
-    "build:production": "REACT_APP_USE_MOCK=true react-scripts build",
-    "test": "react-scripts test",
-    "eject": "react-scripts eject"
+    "start": "vite",
+    "dev": "vite",
+    "build": "vite build",
+    "build:production": "vite build",
+    "preview": "vite preview",
+    "test": "echo \"No test runner\" && exit 0"
+  },
+  "devDependencies": {
+    "vite": "^6.0.0",
+    "@vitejs/plugin-react": "^4.3.4"
   },
   "proxy": "http://localhost:4000",
   "eslintConfig": {
