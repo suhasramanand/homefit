@@ -10,8 +10,10 @@ import {
   MenuItem,
   InputAdornment,
   IconButton,
-  Link
+  Link,
+  Tooltip
 } from "@mui/material";
+import { alpha, useTheme } from "@mui/material/styles";
 import axios from "axios";
 import { useNavigate, Link as RouterLink } from "react-router-dom";
 import GoogleLoginButton from "../common/buttons/GoogleLoginButton";
@@ -19,6 +21,10 @@ import SuccessModal from "../common/modal/SuccessModal";
 import Visibility from '@mui/icons-material/Visibility';
 import VisibilityOff from '@mui/icons-material/VisibilityOff';
 import AnimatedBackground from '../common/theme/AnimatedBackground';
+import DarkModeOutlinedIcon from '@mui/icons-material/DarkModeOutlined';
+import LightModeOutlinedIcon from '@mui/icons-material/LightModeOutlined';
+import ArrowBackRoundedIcon from '@mui/icons-material/ArrowBackRounded';
+import { useColorMode } from "../common/theme/ColorModeContext";
 
 const Signup = () => {
   const [form, setForm] = useState({
@@ -33,6 +39,29 @@ const Signup = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const navigate = useNavigate();
+  const theme = useTheme();
+  const { mode, toggleColorMode } = useColorMode();
+
+  const textFieldSx = {
+    "& .MuiInputLabel-root": {
+      color: "text.secondary",
+    },
+    "& .MuiInputLabel-root.Mui-focused": {
+      color: "primary.main",
+    },
+    "& .MuiOutlinedInput-input": {
+      color: "text.primary",
+    },
+    "& .MuiOutlinedInput-notchedOutline": {
+      borderColor: "divider",
+    },
+    "&:hover .MuiOutlinedInput-notchedOutline": {
+      borderColor: "text.primary",
+    },
+    "& .MuiFormHelperText-root": {
+      color: "text.secondary",
+    },
+  };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -144,21 +173,51 @@ const Signup = () => {
     <>
     {/* Animated Background */}
     <AnimatedBackground />
-    <Container maxWidth="md" sx={{ mt: 10 }}>
+    <Container maxWidth="md" sx={{ minHeight: "100vh", display: "flex", alignItems: "center", py: { xs: 3, md: 4 } }}>
       <SuccessModal
         open={modalOpen}
         message="Signup Successful"
         subtext="Redirecting to login..."
       />
 
-      <Paper elevation={4} sx={{ borderRadius: 3, overflow: "hidden" }}>
+      <Paper
+        elevation={4}
+        sx={{
+          borderRadius: 3,
+          overflow: "hidden",
+          backgroundColor: theme.palette.background.paper,
+          border:
+            theme.palette.mode === "light"
+              ? "1px solid rgba(0,0,0,0.06)"
+              : "1px solid rgba(255,255,255,0.08)",
+          position: "relative",
+          width: "100%",
+        }}
+      >
+        <Box sx={{ position: "absolute", top: 12, left: 12, zIndex: 1 }}>
+          <Tooltip title="Back to home">
+            <IconButton aria-label="back to home" onClick={() => navigate("/")}>
+              <ArrowBackRoundedIcon />
+            </IconButton>
+          </Tooltip>
+        </Box>
+        <Box sx={{ position: "absolute", top: 12, right: 12, zIndex: 1 }}>
+          <Tooltip title={mode === "dark" ? "Switch to light mode" : "Switch to dark mode"}>
+            <IconButton aria-label="toggle dark mode" onClick={toggleColorMode}>
+              {mode === "dark" ? <LightModeOutlinedIcon /> : <DarkModeOutlinedIcon />}
+            </IconButton>
+          </Tooltip>
+        </Box>
         <Grid container>
           {/* Image Section */}
           <Grid item xs={12} md={6} sx={{ display: { xs: "none", md: "block" } }}>
             <Box
               sx={{
                 height: "100%",
-                backgroundColor: "#f5f7fa",
+                backgroundColor:
+                  theme.palette.mode === "light"
+                    ? alpha(theme.palette.grey[50], 0.9)
+                    : alpha(theme.palette.common.white, 0.06),
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
@@ -175,101 +234,127 @@ const Signup = () => {
 
           {/* Signup Form Section */}
           <Grid item xs={12} md={6}>
-            <Box sx={{ p: 5 }}>
-              <Typography variant="h5" fontWeight="600" gutterBottom align="center">
+            <Box sx={{ p: { xs: 3, sm: 4 } }}>
+              <Typography variant="h5" fontWeight="600" gutterBottom align="center" color="text.primary">
                 Create Account
               </Typography>
-              <Typography variant="body2" align="center" color="text.secondary" mb={3}>
+              <Typography variant="body2" align="center" color="text.secondary" mb={2}>
                 Join us by filling the details below
               </Typography>
 
               <form onSubmit={handleSubmit}>
-                <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
-                  <TextField
-                    label="Full Name"
-                    name="fullName"
-                    variant="outlined"
-                    value={form.fullName}
-                    onChange={handleChange}
-                    required
-                    fullWidth
-                    error={!!errors.fullName}
-                    helperText={errors.fullName}
-                  />
-                  <TextField
-                    label="Email"
-                    name="email"
-                    type="email"
-                    variant="outlined"
-                    value={form.email}
-                    onChange={handleChange}
-                    required
-                    fullWidth
-                    error={!!errors.email}
-                    helperText={errors.email}
-                  />
-                  <TextField
-                    label="Password"
-                    name="password"
-                    type={showPassword ? "text" : "password"}
-                    variant="outlined"
-                    value={form.password}
-                    onChange={handleChange}
-                    required
-                    fullWidth
-                    error={!!errors.password}
-                    helperText={errors.password || "Password must be at least 8 characters"}
-                    InputProps={{
-                      endAdornment: (
-                        <InputAdornment position="end">
-                          <IconButton
-                            aria-label="toggle password visibility"
-                            onClick={handleTogglePasswordVisibility}
-                            edge="end"
-                          >
-                            {showPassword ? <VisibilityOff /> : <Visibility />}
-                          </IconButton>
-                        </InputAdornment>
-                      ),
-                    }}
-                  />
-                  <TextField
-                    label="Confirm Password"
-                    name="confirmPassword"
-                    type={showConfirmPassword ? "text" : "password"}
-                    variant="outlined"
-                    value={form.confirmPassword}
-                    onChange={handleChange}
-                    required
-                    fullWidth
-                    error={!!errors.confirmPassword}
-                    helperText={errors.confirmPassword}
-                    InputProps={{
-                      endAdornment: (
-                        <InputAdornment position="end">
-                          <IconButton
-                            aria-label="toggle confirm password visibility"
-                            onClick={handleToggleConfirmPasswordVisibility}
-                            edge="end"
-                          >
-                            {showConfirmPassword ? <VisibilityOff /> : <Visibility />}
-                          </IconButton>
-                        </InputAdornment>
-                      ),
-                    }}
-                  />
-                  <TextField
-                    select
-                    label="Account Type"
-                    name="type"
-                    value={form.type}
-                    onChange={handleChange}
-                    fullWidth
-                    helperText={form.type === "broker" ? "Broker accounts require additional verification" : ""}
-                  >
-                    <MenuItem value="user">User</MenuItem>
-                    <MenuItem value="broker">Broker</MenuItem>
-                  </TextField>
+                <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}>
+                  <Grid container spacing={2}>
+                    <Grid item xs={12} md={6}>
+                      <TextField
+                        label="Full Name"
+                        name="fullName"
+                        variant="outlined"
+                        value={form.fullName}
+                        onChange={handleChange}
+                        required
+                        fullWidth
+                        error={!!errors.fullName}
+                        helperText={errors.fullName}
+                        sx={textFieldSx}
+                        size="small"
+                      />
+                    </Grid>
+                    <Grid item xs={12} md={6}>
+                      <TextField
+                        label="Email"
+                        name="email"
+                        type="email"
+                        variant="outlined"
+                        value={form.email}
+                        onChange={handleChange}
+                        required
+                        fullWidth
+                        error={!!errors.email}
+                        helperText={errors.email}
+                        sx={textFieldSx}
+                        size="small"
+                      />
+                    </Grid>
+                    <Grid item xs={12} md={12}>
+                      <TextField
+                        label="Password"
+                        name="password"
+                        type={showPassword ? "text" : "password"}
+                        variant="outlined"
+                        value={form.password}
+                        onChange={handleChange}
+                        required
+                        fullWidth
+                        error={!!errors.password}
+                        helperText={errors.password}
+                        sx={textFieldSx}
+                        size="small"
+                        InputProps={{
+                          endAdornment: (
+                            <InputAdornment position="end">
+                              <IconButton
+                                aria-label="toggle password visibility"
+                                onClick={handleTogglePasswordVisibility}
+                                edge="end"
+                              >
+                                {showPassword ? <VisibilityOff /> : <Visibility />}
+                              </IconButton>
+                            </InputAdornment>
+                          ),
+                        }}
+                      />
+                    </Grid>
+                    <Grid item xs={12} md={12}>
+                      <TextField
+                        label="Confirm Password"
+                        name="confirmPassword"
+                        type={showConfirmPassword ? "text" : "password"}
+                        variant="outlined"
+                        value={form.confirmPassword}
+                        onChange={handleChange}
+                        required
+                        fullWidth
+                        error={!!errors.confirmPassword}
+                        helperText={errors.confirmPassword}
+                        sx={textFieldSx}
+                        size="small"
+                        InputProps={{
+                          endAdornment: (
+                            <InputAdornment position="end">
+                              <IconButton
+                                aria-label="toggle confirm password visibility"
+                                onClick={handleToggleConfirmPasswordVisibility}
+                                edge="end"
+                              >
+                                {showConfirmPassword ? <VisibilityOff /> : <Visibility />}
+                              </IconButton>
+                            </InputAdornment>
+                          ),
+                        }}
+                      />
+                    </Grid>
+                    <Grid item xs={12}>
+                      <TextField
+                        select
+                        label="Account Type"
+                        name="type"
+                        value={form.type}
+                        onChange={handleChange}
+                        fullWidth
+                        helperText={
+                          form.type === "broker"
+                            ? "Broker accounts require additional verification"
+                            : ""
+                        }
+                        sx={textFieldSx}
+                        size="small"
+                      >
+                        <MenuItem value="user">User</MenuItem>
+                        <MenuItem value="broker">Broker</MenuItem>
+                      </TextField>
+                    </Grid>
+                  </Grid>
 
                   {errors.general && (
                     <Typography color="error" variant="body2">
@@ -285,12 +370,8 @@ const Signup = () => {
                       borderRadius: 2,
                       textTransform: "none",
                       fontWeight: "bold",
-                      py: 1.5,
+                      py: 1.05,
                       fontSize: "1rem",
-                      backgroundColor: "#00b386",
-                      "&:hover": {
-                        backgroundColor: "#009973",
-                      },
                     }}
                   >
                     {form.type === "broker" ? "Continue to Broker Verification" : "Sign Up"}
@@ -298,10 +379,10 @@ const Signup = () => {
                   <GoogleLoginButton onClick={() => alert("Google Login Coming Soon!")} />
                   
                   {/* Added Login Link */}
-                  <Box sx={{ textAlign: 'center', mt: 2 }}>
+                  <Box sx={{ textAlign: "center" }}>
                     <Typography variant="body2" color="text.secondary">
                       Already have an account?{' '}
-                      <Link component={RouterLink} to="/login" sx={{ color: '#00b386', fontWeight: 'medium' }}>
+                      <Link component={RouterLink} to="/login" sx={{ color: 'primary.main', fontWeight: 'medium' }}>
                         Log in
                       </Link>
                     </Typography>

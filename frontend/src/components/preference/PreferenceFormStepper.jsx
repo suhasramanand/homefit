@@ -6,7 +6,7 @@ import { styled } from '@mui/material/styles';
 const StyledStepper = styled(Stepper)(({ theme }) => ({
   marginBottom: theme.spacing(4),
   '& .MuiStepIcon-root.Mui-completed, & .MuiStepIcon-root.Mui-active': {
-    color: '#00b386',
+    color: theme.palette.primary.main,
   },
 }));
 

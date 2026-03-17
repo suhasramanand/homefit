@@ -4,9 +4,11 @@ import { createTheme } from "@mui/material/styles";
 // Function to create a theme with the selected mode
 export const createAppTheme = (mode = "light") => {
   // Define common palette values
-  const primaryMain = "#23cea3";
-  const primaryDark = "#1ba583";
-  const primaryLight = "#4fd7b5";
+  // Brand green used across the app (e.g. step indicators)
+  const primaryMain = "#00b386";
+  const primaryDark = "#009973";
+  const primaryLight = "#33c79d";
+  const primaryContrastText = "#ffffff";
   const secondaryMain = "#2c3e50";
   const secondaryDark = "#1a252f";
   const secondaryLight = "#546478";
@@ -18,7 +20,7 @@ export const createAppTheme = (mode = "light") => {
         main: primaryMain,
         dark: primaryDark,
         light: primaryLight,
-        contrastText: "#ffffff",
+        contrastText: primaryContrastText,
       },
       secondary: {
         main: secondaryMain,
@@ -103,10 +105,6 @@ export const createAppTheme = (mode = "light") => {
             borderRadius: 8,
             padding: "8px 16px",
             fontWeight: 500,
-            "&:hover": {
-              color: primaryMain,
-              backgroundColor: "transparent",
-            },
           },
           outlined: {
             borderColor: primaryMain,
@@ -123,11 +121,11 @@ export const createAppTheme = (mode = "light") => {
           },
           contained: {
             backgroundColor: primaryMain,
-            color: "#fff",
+            color: primaryContrastText,
             fontWeight: 600,
             "&:hover": {
               backgroundColor: primaryDark,
-              boxShadow: "0 6px 10px rgba(35, 206, 163, 0.3)",
+              boxShadow: "0 6px 10px rgba(0, 179, 134, 0.3)",
             },
           },
         },

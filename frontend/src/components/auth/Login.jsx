@@ -10,8 +10,10 @@ import {
   InputAdornment,
   IconButton,
   CircularProgress,
-  Link
+  Link,
+  Tooltip
 } from '@mui/material';
+import { alpha, useTheme } from '@mui/material/styles';
 import { useDispatch } from 'react-redux';
 import { loginSuccess } from '../../redux/userSlice';
 import { useNavigate, Link as RouterLink } from 'react-router-dom';
@@ -19,6 +21,10 @@ import axios from '../../axiosConfig';
 import GoogleLoginButton from "../common/buttons/GoogleLoginButton";
 import Visibility from '@mui/icons-material/Visibility';
 import VisibilityOff from '@mui/icons-material/VisibilityOff';
+import DarkModeOutlinedIcon from '@mui/icons-material/DarkModeOutlined';
+import LightModeOutlinedIcon from '@mui/icons-material/LightModeOutlined';
+import ArrowBackRoundedIcon from '@mui/icons-material/ArrowBackRounded';
+import { useColorMode } from '../common/theme/ColorModeContext';
 
 // Fixed Background Animation Component using inline styles instead of Tailwind classes
 const AnimatedBackground = () => {
@@ -138,8 +144,31 @@ const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
 
+  const theme = useTheme();
+  const { mode, toggleColorMode } = useColorMode();
   const dispatch = useDispatch();
   const navigate = useNavigate();
+
+  const textFieldSx = {
+    "& .MuiInputLabel-root": {
+      color: "text.secondary",
+    },
+    "& .MuiInputLabel-root.Mui-focused": {
+      color: "primary.main",
+    },
+    "& .MuiOutlinedInput-input": {
+      color: "text.primary",
+    },
+    "& .MuiOutlinedInput-notchedOutline": {
+      borderColor: "divider",
+    },
+    "&:hover .MuiOutlinedInput-notchedOutline": {
+      borderColor: "text.primary",
+    },
+    "& .MuiFormHelperText-root": {
+      color: "text.secondary",
+    },
+  };
 
   const handleTogglePasswordVisibility = () => {
     setShowPassword(!showPassword);
@@ -226,20 +255,43 @@ const Login = () => {
       {/* Animated Background */}
       <AnimatedBackground />
       
-      <Container maxWidth="md" sx={{ mt: 10 }}>
+      <Container
+        maxWidth="md"
+        sx={{
+          py: { xs: 6, md: 10 },
+        }}
+      >
         <Paper elevation={4} sx={{ 
           borderRadius: 3, 
           overflow: 'hidden',
-          backdropFilter: 'blur(4px)',
-          background: 'rgba(255, 255, 255, 0.9)', // Slightly transparent paper
+          backgroundColor: theme.palette.background.paper,
+          border: theme.palette.mode === 'light' ? '1px solid rgba(0,0,0,0.06)' : '1px solid rgba(255,255,255,0.08)',
+          position: 'relative',
         }}>
+          <Box sx={{ position: 'absolute', top: 12, left: 12, zIndex: 1 }}>
+            <Tooltip title="Back to home">
+              <IconButton aria-label="back to home" onClick={() => navigate('/')}>
+                <ArrowBackRoundedIcon />
+              </IconButton>
+            </Tooltip>
+          </Box>
+          <Box sx={{ position: 'absolute', top: 12, right: 12, zIndex: 1 }}>
+            <Tooltip title={mode === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}>
+              <IconButton aria-label="toggle dark mode" onClick={toggleColorMode}>
+                {mode === 'dark' ? <LightModeOutlinedIcon /> : <DarkModeOutlinedIcon />}
+              </IconButton>
+            </Tooltip>
+          </Box>
           <Grid container>
             {/* Image Section */}
             <Grid item xs={12} md={6} sx={{ display: { xs: 'none', md: 'block' } }}>
               <Box
                 sx={{
                   height: '100%',
-                  backgroundColor: 'rgba(245, 247, 250, 0.8)', // Slightly transparent background
+                  backgroundColor:
+                    theme.palette.mode === 'light'
+                      ? alpha(theme.palette.grey[50], 0.85)
+                      : alpha(theme.palette.common.white, 0.06),
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
@@ -257,7 +309,7 @@ const Login = () => {
             {/* Login Form Section */}
             <Grid item xs={12} md={6}>
               <Box sx={{ p: 5 }}>
-                <Typography variant="h5" fontWeight="600" gutterBottom align="center">
+                <Typography variant="h5" fontWeight="600" gutterBottom align="center" color="text.primary">
                   Welcome Back
                 </Typography>
                 <Typography variant="body2" align="center" color="text.secondary" mb={3}>
@@ -273,7 +325,7 @@ const Login = () => {
                       required
                       fullWidth
                       type="email"
-                      sx={{ borderRadius: 2 }}
+                      sx={textFieldSx}
                       disabled={loading}
                     />
                     <TextField
@@ -284,7 +336,7 @@ const Login = () => {
                       onChange={(e) => setPassword(e.target.value)}
                       required
                       fullWidth
-                      sx={{ borderRadius: 2 }}
+                      sx={textFieldSx}
                       disabled={loading}
                       InputProps={{
                         endAdornment: (
@@ -317,10 +369,6 @@ const Login = () => {
                         fontWeight: 'bold',
                         py: 1.5,
                         fontSize: '1rem',
-                        backgroundColor: '#00b386',
-                        '&:hover': {
-                          backgroundColor: '#009973',
-                        },
                       }}
                     >
                       {loading ? (
@@ -335,7 +383,7 @@ const Login = () => {
                     <Box sx={{ textAlign: 'center', mt: 2 }}>
                       <Typography variant="body2" color="text.secondary">
                         Don't have an account?{' '}
-                        <Link component={RouterLink} to="/signup" sx={{ color: '#00b386', fontWeight: 'medium' }}>
+                        <Link component={RouterLink} to="/signup" sx={{ color: 'primary.main', fontWeight: 'medium' }}>
                           Sign up
                         </Link>
                       </Typography>

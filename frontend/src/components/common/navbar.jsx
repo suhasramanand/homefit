@@ -16,8 +16,11 @@ import {
   useTheme,
   Menu,
   MenuItem,
+  Tooltip,
 } from "@mui/material";
 import MenuIcon from "@mui/icons-material/Menu";
+import DarkModeOutlinedIcon from "@mui/icons-material/DarkModeOutlined";
+import LightModeOutlinedIcon from "@mui/icons-material/LightModeOutlined";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useSelector, useDispatch } from "react-redux";
 import axios from "axios";
@@ -34,7 +37,7 @@ const Navbar = () => {
   
   // Get theme and color mode
   const theme = useTheme();
-  const { mode } = useColorMode();
+  const { mode, toggleColorMode } = useColorMode();
   
   const isBroker = user?.type === "broker";
   const isUser = user?.type === "user";
@@ -157,6 +160,26 @@ const Navbar = () => {
     "&:hover": {
       color: theme.palette.primary.main,
       backgroundColor: "transparent",
+    },
+  };
+
+  // Auth CTA styling (HCI: clear primary/secondary actions, consistent wording, large hit targets)
+  const authSecondaryButtonSx = {
+    ...navButtonStyle,
+    px: 2,
+    py: 1,
+    borderRadius: 2,
+  };
+
+  const authPrimaryButtonSx = {
+    px: 2.5,
+    py: 1,
+    borderRadius: 2,
+    fontWeight: 700,
+    textTransform: "none",
+    boxShadow: "none",
+    "&:hover": {
+      boxShadow: "none",
     },
   };
 
@@ -292,6 +315,15 @@ const Navbar = () => {
 
         {!isMobile && (
           <Box display="flex" alignItems="center" gap={2}>
+            <Tooltip title={mode === "dark" ? "Switch to light mode" : "Switch to dark mode"}>
+              <IconButton
+                aria-label="toggle dark mode"
+                onClick={toggleColorMode}
+                color="inherit"
+              >
+                {mode === "dark" ? <LightModeOutlinedIcon /> : <DarkModeOutlinedIcon />}
+              </IconButton>
+            </Tooltip>
             {isLoggedIn ? (
               <>
                 <Typography
@@ -310,11 +342,20 @@ const Navbar = () => {
               </>
             ) : (
               <>
-                <Button onClick={() => navigate("/login")} sx={navButtonStyle}>
-                  Login
+                <Button
+                  onClick={() => navigate("/login")}
+                  variant="text"
+                  sx={authSecondaryButtonSx}
+                >
+                  Log in
                 </Button>
-                <Button onClick={() => navigate("/signup")} sx={navButtonStyle}>
-                  Signup
+                <Button
+                  onClick={() => navigate("/signup")}
+                  variant="contained"
+                  color="primary"
+                  sx={authPrimaryButtonSx}
+                >
+                  Sign up
                 </Button>
               </>
             )}
@@ -323,6 +364,17 @@ const Navbar = () => {
 
         {isMobile && (
           <>
+            <Tooltip title={mode === "dark" ? "Switch to light mode" : "Switch to dark mode"}>
+              <IconButton
+                aria-label="toggle dark mode"
+                onClick={toggleColorMode}
+                edge="end"
+                color="inherit"
+                sx={{ mr: 1 }}
+              >
+                {mode === "dark" ? <LightModeOutlinedIcon /> : <DarkModeOutlinedIcon />}
+              </IconButton>
+            </Tooltip>
             <IconButton onClick={() => setDrawerOpen(true)} edge="end" color="inherit">
               <MenuIcon />
             </IconButton>
@@ -337,6 +389,18 @@ const Navbar = () => {
                 role="presentation"
               >
                 <List>
+                  <ListItem disablePadding>
+                    <ListItemButton
+                      onClick={() => {
+                        toggleColorMode();
+                      }}
+                    >
+                      <ListItemText
+                        primary={mode === "dark" ? "Light mode" : "Dark mode"}
+                      />
+                    </ListItemButton>
+                  </ListItem>
+                  <Divider />
                   {commonLinks.map(({ label, to }) => (
                     <ListItem key={label} disablePadding>
                       <ListItemButton
@@ -561,9 +625,21 @@ const Navbar = () => {
                           navigate("/login");
                           setDrawerOpen(false);
                         }}
-                        sx={navButtonStyle}
+                        variant="outlined"
+                        sx={{
+                          ...logoutButtonStyle,
+                          borderColor: "divider",
+                          color: "text.primary",
+                          "&:hover": {
+                            backgroundColor:
+                              theme.palette.mode === "light"
+                                ? "rgba(0, 0, 0, 0.04)"
+                                : "rgba(255, 255, 255, 0.06)",
+                            borderColor: "divider",
+                          },
+                        }}
                       >
-                        Login
+                        Log in
                       </Button>
                       <Button
                         fullWidth
@@ -571,9 +647,14 @@ const Navbar = () => {
                           navigate("/signup");
                           setDrawerOpen(false);
                         }}
-                        sx={navButtonStyle}
+                        variant="contained"
+                        color="primary"
+                        sx={{
+                          mt: 1,
+                          ...authPrimaryButtonSx,
+                        }}
                       >
-                        Signup
+                        Sign up
                       </Button>
                     </>
                   )}
